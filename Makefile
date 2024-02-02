@@ -40,7 +40,7 @@ clean:
 main.o: main.cpp scene_viewer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-scene_viewer.o: scene_viewer.cpp scene_viewer.hpp
+scene_viewer.o: scene_viewer.cpp scene_viewer.hpp libs\cglm.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 instance.o: instance.cpp scene_viewer.hpp
@@ -69,4 +69,3 @@ graphics_pipeline.o: graphics_pipeline.cpp scene_viewer.hpp
 
 framebuffer.o: framebuffer.cpp scene_viewer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
-	
