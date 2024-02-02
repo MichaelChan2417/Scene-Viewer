@@ -14,7 +14,7 @@
 #include <cstdint> 
 #include <limits> 
 #include <algorithm>
-
+#include <fstream>
 
 
 const std::vector<const char*> deviceExtensions = {
@@ -85,9 +85,13 @@ public:
     VkQueue presentQueue;               // present queue with logical device
     VkSurfaceKHR surface;
     VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
+    std::vector<VkImage> swapChainImages;   // images in the swap chain
+    VkFormat swapChainImageFormat;          // format of the swap chain image
+    VkExtent2D swapChainExtent;             // extent of the swap chain image
+    std::vector<VkImageView> swapChainImageViews;
+    VkRenderPass renderPass;
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
 
     // interfaces
     void initWindow();
@@ -97,6 +101,14 @@ public:
 
     // =================== inner functions ===================
     void createInstance();
+
+    // graphics pipeline
+    void createGraphicsPipeline();
+    VkShaderModule createShaderModule(const std::vector<char>& code);
+    void createRenderPass();
+
+    // image views
+    void createImageViews();
 
     // swap chain
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
@@ -133,3 +145,19 @@ public:
         return VK_FALSE;
     }
 }; // SceneViewer
+
+static std::vector<char> readFile(const std::string& filename) {
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("failed to open file!");
+    }
+
+    size_t fileSize = (size_t)file.tellg();
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+
+    file.close();
+    return buffer;
+}

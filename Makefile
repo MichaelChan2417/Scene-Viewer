@@ -15,7 +15,9 @@ SOURCES = scene_viewer.cpp main.cpp \
 			implement\physical_device.cpp \
 			implement\logical_device.cpp \
 			implement\swap_chain.cpp \
-			implement\surface.cpp
+			implement\surface.cpp	\
+			implement\image_view.cpp \
+			implement\graphics_pipeline.cpp
 
 # 生成目标文件列表
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -52,8 +54,14 @@ physical_device.o: physical_device.cpp scene_viewer.hpp
 logical_device.o: logical_device.cpp scene_viewer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+surface.o: surface.cpp scene_viewer.hpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
 swap_chain.o: swap_chain.cpp scene_viewer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-surface.o: surface.cpp scene_viewer.hpp
+image_view.o: image_view.cpp scene_viewer.hpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+graphics_pipeline.o: graphics_pipeline.cpp scene_viewer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
