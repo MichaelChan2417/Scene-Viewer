@@ -37,6 +37,7 @@ void SceneViewer::createCommandPool() {
 }
 
 void SceneViewer::createCommandBuffers() {
+    commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
     VkCommandBufferAllocateInfo allocInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .commandPool = commandPool,
@@ -132,11 +133,21 @@ void SceneViewer::createSyncObjects() {
 
 void SceneViewer::drawFrame() {
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
     // acquire image-index from swap chain
     uint32_t imageIndex;
-    vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+    // when there is a window size change, recreate the swap chain
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        recreateSwapChain();
+        return;
+    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        throw std::runtime_error("failed to acquire swap chain image!");
+    }
+
+    // Only reset the fence if we are submitting work
+    vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
@@ -170,7 +181,19 @@ void SceneViewer::drawFrame() {
         .pImageIndices = &imageIndex,
     };
 
-    vkQueuePresentKHR(presentQueue, &presentInfo);
-    
+    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
+        framebufferResized = false;
+        recreateSwapChain();
+    } else if (result != VK_SUCCESS) {
+        throw std::runtime_error("failed to present swap chain image!");
+    }
+
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void SceneViewer::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+    auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
+    app->framebufferResized = true;
 }

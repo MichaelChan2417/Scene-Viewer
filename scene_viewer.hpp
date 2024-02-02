@@ -101,6 +101,7 @@ public:
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
     uint32_t currentFrame = 0;
+    bool framebufferResized = false;
 
     // interfaces
     void initWindow();
@@ -118,6 +119,7 @@ public:
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void drawFrame();
     void createSyncObjects();
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
     // graphics pipeline
     void createGraphicsPipeline();
@@ -134,6 +136,8 @@ public:
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
     void createSwapChain();
+    void recreateSwapChain();
+    void cleanupSwapChain();
 
     // window surface
     void createSurface();

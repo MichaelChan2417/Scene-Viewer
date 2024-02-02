@@ -17,6 +17,13 @@ void SceneViewer::initVulkan() {
 }
 
 void SceneViewer::cleanup() {
+
+    cleanupSwapChain();
+
+    vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    vkDestroyRenderPass(device, renderPass, nullptr);
+
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
@@ -25,19 +32,6 @@ void SceneViewer::cleanup() {
 
     vkDestroyCommandPool(device, commandPool, nullptr);
 
-    for (auto framebuffer : swapChainFramebuffers) {
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
-    }
-
-    vkDestroyPipeline(device, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-    vkDestroyRenderPass(device, renderPass, nullptr);
-
-    for (auto imageView : swapChainImageViews) {
-        vkDestroyImageView(device, imageView, nullptr);
-    }
-
-    vkDestroySwapchainKHR(device, swapChain, nullptr);
     vkDestroyDevice(device, nullptr);
 
     if (enableValidationLayers) {
@@ -54,8 +48,10 @@ void SceneViewer::cleanup() {
 void SceneViewer::initWindow() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);      // disable window resize
     window = glfwCreateWindow(window_width, window_height, "Michael_NICE_Window", nullptr, nullptr);
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 }
 
 void SceneViewer::mainLoop() {
