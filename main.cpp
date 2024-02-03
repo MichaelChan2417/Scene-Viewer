@@ -1,6 +1,6 @@
 #include "scene_viewer.hpp"
 
-#define NDEBUG 1
+// #define NDEBUG 1
 
 ASSIGN_RESULT assign_values(SceneViewer& sv, int w, int h, std::string scene_file, std::string camera_name,
     std::string device_name, std::string events);

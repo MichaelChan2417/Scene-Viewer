@@ -2,9 +2,10 @@
 GLFWPATH_INCLUDE = "D:/STUDY/Libs/glfw-3.3.9.bin.WIN64/include"
 GLFWPATHLIB = "D:/STUDY/Libs/glfw-3.3.9.bin.WIN64/lib-static-ucrt"
 VULKANPATH = "D:/STUDY/Vulkan"
+GLMPATH = "D:/STUDY/Libs/glm"
 
 CXX = g++
-CXXFLAGS = -std=c++20 -O2 -I$(GLFWPATH_INCLUDE) -I$(VULKANPATH)/Include
+CXXFLAGS = -std=c++20 -O2 -I$(GLFWPATH_INCLUDE) -I$(VULKANPATH)/Include -I$(GLMPATH)
 LDFLAGS = -L$(GLFWPATHLIB) -L$(VULKANPATH)/Lib -lglfw3dll -lvulkan-1
 
 

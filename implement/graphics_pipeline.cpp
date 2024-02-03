@@ -26,7 +26,7 @@ void SceneViewer::createGraphicsPipeline() {
     auto bindingDescription = Vertex::getBindingDescription();
     auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
-    VkPipelineVertexInputStateCreateInfo vertexInputInfo{
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .vertexBindingDescriptionCount = 1,
         .pVertexBindingDescriptions = &bindingDescription,
@@ -35,14 +35,14 @@ void SceneViewer::createGraphicsPipeline() {
     };
 
     // input assembly
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly{
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
         .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
         .primitiveRestartEnable = VK_FALSE,
     };
 
     // viewport state
-    VkPipelineViewportStateCreateInfo viewportState{
+    VkPipelineViewportStateCreateInfo viewportState {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
         .viewportCount = 1,
         .pViewports = nullptr,
@@ -51,30 +51,30 @@ void SceneViewer::createGraphicsPipeline() {
     };
 
     // rasterizer
-    VkPipelineRasterizationStateCreateInfo rasterizer{
+    VkPipelineRasterizationStateCreateInfo rasterizer {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         .depthClampEnable = VK_FALSE,
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode = VK_POLYGON_MODE_FILL,
         .cullMode = VK_CULL_MODE_BACK_BIT,
-        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
         .lineWidth = 1.0f,
     };
 
     // multisampling
-    VkPipelineMultisampleStateCreateInfo multisampling{
+    VkPipelineMultisampleStateCreateInfo multisampling {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
         .sampleShadingEnable = VK_FALSE,
     };
 
     // color blending
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{
+    VkPipelineColorBlendAttachmentState colorBlendAttachment {
         .blendEnable = VK_FALSE,
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
     };
-    VkPipelineColorBlendStateCreateInfo colorBlending{
+    VkPipelineColorBlendStateCreateInfo colorBlending {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
         .logicOpEnable = VK_FALSE,
         .logicOp = VK_LOGIC_OP_COPY,
@@ -88,17 +88,17 @@ void SceneViewer::createGraphicsPipeline() {
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR
     };
-    VkPipelineDynamicStateCreateInfo dynamicState{
+    VkPipelineDynamicStateCreateInfo dynamicState {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
         .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
         .pDynamicStates = dynamicStates.data()
     };
 
     // pipeline layout
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 0,
-        .pSetLayouts = nullptr,
+        .setLayoutCount = 1,        // set layout to 1, for ubo descriptor
+        .pSetLayouts = &descriptorSetLayout,
         .pushConstantRangeCount = 0,
         .pPushConstantRanges = nullptr,
     };
@@ -107,7 +107,7 @@ void SceneViewer::createGraphicsPipeline() {
     }
 
     // ------------------------------ Finally, create the pipeline ------------------------------
-    VkGraphicsPipelineCreateInfo pipelineInfo{
+    VkGraphicsPipelineCreateInfo pipelineInfo {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .stageCount = 2,
         .pStages = shaderStages,
@@ -135,7 +135,7 @@ void SceneViewer::createGraphicsPipeline() {
 
 
 void SceneViewer::createRenderPass() {
-    VkAttachmentDescription colorAttachment{
+    VkAttachmentDescription colorAttachment {
         .format = swapChainImageFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -146,13 +146,13 @@ void SceneViewer::createRenderPass() {
         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
     };
 
-    VkAttachmentReference colorAttachmentRef{
+    VkAttachmentReference colorAttachmentRef {
         .attachment = 0,
         .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
 
     // subpass
-    VkSubpassDescription subpass{
+    VkSubpassDescription subpass {
         .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
         .colorAttachmentCount = 1,
         .pColorAttachments = &colorAttachmentRef,
