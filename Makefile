@@ -18,7 +18,8 @@ SOURCES = scene_viewer.cpp main.cpp \
 			implement\surface.cpp	\
 			implement\image_view.cpp \
 			implement\graphics_pipeline.cpp \
-			implement\framebuffer.cpp
+			implement\framebuffer.cpp	\
+			implement\vertexbuffer.cpp
 
 # 生成目标文件列表
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -68,4 +69,7 @@ graphics_pipeline.o: graphics_pipeline.cpp scene_viewer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 framebuffer.o: framebuffer.cpp scene_viewer.hpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+vertexbuffer.o: vertexbuffer.cpp scene_viewer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<

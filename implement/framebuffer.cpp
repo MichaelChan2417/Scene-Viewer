@@ -92,9 +92,13 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     scissor.extent = swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);            
 
+    VkBuffer vertexBuffers[] = {vertexBuffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    
     // this is actually drawing
     vkCmdDraw(commandBuffer,
-        3,      /* Vertex Count */
+        static_cast<uint32_t>(vertices.size()),      /* Vertex Count */
         1,      /* Instance Count */
         0,      /* First Vertex, defines lowest value of gl_VertexIndex */
         0
