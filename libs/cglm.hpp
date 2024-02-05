@@ -9,9 +9,9 @@
 
 namespace cglm {
 
-    constexpr float M_PI = 3.14159265358979323846f;
+    constexpr float PI_M = 3.14159265358979323846f;
 
-    static float to_radians(float degrees) { return degrees * M_PI / 180.0f; }
+    static float to_radians(float degrees) { return degrees * PI_M / 180.0f; }
 
     template <size_t N, typename T> struct Vec {
         std::array<T, N> data;
@@ -378,9 +378,9 @@ namespace cglm {
     }
 
     template <typename T> inline Vec<3, T> operator*(const Mat44<T> &m, const Vec<3, T> &a) {
-        return Vec<3, T>(m(0, 0) * a[0] + m(1, 0) * a[1] + m(2, 0) * a[2],
-                        m(0, 1) * a[0] + m(1, 1) * a[1] + m(2, 1) * a[2],
-                        m(0, 2) * a[0] + m(1, 2) * a[1] + m(2, 2) * a[2]);
+        return Vec<3, T>(m(0, 0) * a[0] + m(0, 1) * a[1] + m(0, 2) * a[2],
+                        m(1, 0) * a[0] + m(1, 1) * a[1] + m(1, 2) * a[2],
+                        m(2, 0) * a[0] + m(2, 1) * a[1] + m(2, 2) * a[2]);
     }
 
     template <typename T> inline Mat44<T> operator*(const Mat44<T> &m, T a) {
@@ -466,12 +466,14 @@ namespace cglm {
         T s = std::sin(angle);
         T t = T(1) - c;
         Vec<3, T> n = normalize(axis);
+
         return Mat44<T>(
-            {t * n.x * n.x + c, t * n.x * n.y - s * n.z, t * n.x * n.z + s * n.y, 0},
-            {t * n.x * n.y + s * n.z, t * n.y * n.y + c, t * n.y * n.z - s * n.x, 0},
-            {t * n.x * n.z - s * n.y, t * n.y * n.z + s * n.x, t * n.z * n.z + c, 0},
-            {0, 0, 0, 1}
+            { t * n.x * n.x + c, t * n.x * n.y + s * n.z, t * n.x * n.z - s * n.y, 0 },
+            { t * n.x * n.y - s * n.z, t * n.y * n.y + c, t * n.y * n.z + s * n.x, 0 },
+            { t * n.x * n.z + s * n.y, t * n.y * n.z - s * n.x, t * n.z * n.z + c, 0 },
+            { 0, 0, 0, 1 }
         );
+
     }
 
     template <typename T> Mat44<T> lookAt(const Vec<3, T>& eye, const Vec<3, T>& center, const Vec<3, T>& up) {
@@ -479,6 +481,7 @@ namespace cglm {
         Vec<3, T> u = normalize(up);
         Vec<3, T> s = normalize(cross(f, u));
         u = cross(s, f);
+
         return Mat44<T>(
             {s.x, u.x, -f.x, 0},
             {s.y, u.y, -f.y, 0},

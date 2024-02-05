@@ -78,6 +78,7 @@ void SceneViewer::mainLoop() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         drawFrame();
+        // std::cout << window_width << " " << window_height << std::endl;
     }
     vkDeviceWaitIdle(device);
 }
