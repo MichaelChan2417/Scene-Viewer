@@ -101,17 +101,17 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     
     // this is actually drawing
-    // vkCmdDraw(commandBuffer,
-    //     static_cast<uint32_t>(vertices.size()),      /* Vertex Count */
-    //     1,      /* Instance Count */
-    //     0,      /* First Vertex, defines lowest value of gl_VertexIndex */
-    //     0
-    // );
+    vkCmdDraw(commandBuffer,
+        static_cast<uint32_t>(static_vertices.size()),      /* Vertex Count */
+        1,      /* Instance Count */
+        0,      /* First Vertex, defines lowest value of gl_VertexIndex */
+        0
+    );
 
     // if with index buffer
-    vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+    // vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+    // vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
     // end drawing, (render pass)
     vkCmdEndRenderPass(commandBuffer);

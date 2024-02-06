@@ -261,7 +261,7 @@ namespace mcjp {
         // res need to be inserted to make first "s72-v1" => {"s72-v1" : 0}
         res.insert(1, "{");
         res.insert(10, ":0}");
-        std::cout << res.substr(0, 20) << std::endl;
+        // std::cout << res.substr(0, 20) << std::endl;
         return parse(res);
     }
     
@@ -339,5 +339,10 @@ namespace mcjp {
         os << "}";
         return os;
     }
+
+    // std::ostream& operator<<(std::ostream& os, const Object::Data& data) {
+    //     std::visit([&os](const auto& value) { printValue(os, value); }, data);
+    //     return os;
+    // }
 
 } // namespace mcjp

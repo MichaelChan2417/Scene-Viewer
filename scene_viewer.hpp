@@ -61,17 +61,18 @@ struct UniformBufferObject {
     cglm::Mat44f proj;
 };
 
-const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+extern std::vector<Vertex> static_vertices;
+// = {
+    // {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    // {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    // {{-0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
 
-    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}}
-};
+    // {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    // {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    // {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}}
+// };
+
+extern std::vector<Vertex> indexed_vertices;
 
 const std::vector<uint16_t> indices = {
     0, 1, 2, 2, 3, 0,

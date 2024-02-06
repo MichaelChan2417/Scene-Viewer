@@ -10,11 +10,11 @@
 #include <stdexcept>
 
 namespace mcjp {
+    
     struct Object {
         using Data = std::variant<int, double, std::string, Object*,
             std::vector<int>, std::vector<std::string>, std::vector<double>,
             std::vector<Object*>, std::monostate>;
-
         // internals
         std::unordered_map < std::string, Data > contents;
 
@@ -36,5 +36,6 @@ namespace mcjp {
     void filter(const std::string& str, std::string& res);
 
     std::ostream& operator<<(std::ostream& os, const Object& obj);
+    // std::ostream& operator<<(std::ostream& os, const Object::Data& data);
 
 } // namespace mcjp

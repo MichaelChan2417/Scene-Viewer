@@ -10,7 +10,7 @@ LDFLAGS = -L$(GLFWPATHLIB) -L$(VULKANPATH)/Lib -lglfw3dll -lvulkan-1
 
 
 # 源文件列表
-SOURCES = scene_viewer.cpp main.cpp \
+SOURCES = scene_viewer.cpp main.cpp libs\mcjp.cpp \
 			implement\instance.cpp \
 			implement\validation_layer.cpp \
 			implement\physical_device.cpp \
@@ -39,8 +39,14 @@ test: VulkanTest.exe
 clean:
 	del VulkanTest.exe $(OBJECTS)
 
+subtest: main.o mcjp.o
+	$(CXX) $(CXXFLAGS) -o Subtest.exe main.o $(LDFLAGS)
+
 # generating target files
-main.o: main.cpp scene_viewer.hpp
+main.o: main.cpp scene_viewer.hpp libs\mcjp.hpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+mcjp.o: libs\mcjp.cpp libs\mcjp.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 scene_viewer.o: scene_viewer.cpp scene_viewer.hpp libs\cglm.hpp

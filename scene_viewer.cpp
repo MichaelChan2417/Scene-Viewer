@@ -1,5 +1,8 @@
 #include "scene_viewer.hpp"
 
+std::vector<Vertex> static_vertices;
+std::vector<Vertex> indexed_vertices;
+
 void SceneViewer::initVulkan() {
     createInstance();
     setupDebugMessenger();
