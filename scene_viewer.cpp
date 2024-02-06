@@ -11,6 +11,7 @@ void SceneViewer::initVulkan() {
     createRenderPass();
     createDescriptorSetLayout();
     createGraphicsPipeline();
+    createDepthResources();
     createFramebuffers();
     createCommandPool();
     createVertexBuffer();

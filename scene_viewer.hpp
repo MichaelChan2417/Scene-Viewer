@@ -176,6 +176,10 @@ public:
     VkDescriptorPool descriptorPool;
     std::vector<VkDescriptorSet> descriptorSets;
 
+    VkImage depthImage;                 // depth test over image
+    VkDeviceMemory depthImageMemory;
+    VkImageView depthImageView;
+
     // interfaces
     void initWindow();
     void initVulkan();
@@ -185,6 +189,12 @@ public:
     // =================== inner functions ===================
     void createInstance();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+
+    // depth management
+    void createDepthResources();
+    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+    VkFormat findDepthFormat();
+    bool hasStencilComponent(VkFormat format);
 
     // Uniform buffer
     void createDescriptorSetLayout();
@@ -215,6 +225,8 @@ public:
 
     // image views
     void createImageViews();
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
     // swap chain
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
