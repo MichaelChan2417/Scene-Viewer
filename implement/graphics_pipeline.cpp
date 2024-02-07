@@ -8,13 +8,13 @@ void SceneViewer::createGraphicsPipeline() {
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
     // defining module creation info
-    VkPipelineShaderStageCreateInfo vertShaderStageInfo{
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .stage = VK_SHADER_STAGE_VERTEX_BIT,
         .module = vertShaderModule,
         .pName = "main",
     };
-    VkPipelineShaderStageCreateInfo fragShaderStageInfo{
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
         .module = fragShaderModule,
@@ -58,6 +58,7 @@ void SceneViewer::createGraphicsPipeline() {
         .polygonMode = VK_POLYGON_MODE_FILL,
         .cullMode = VK_CULL_MODE_BACK_BIT,
         .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        // .frontFace = VK_FRONT_FACE_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
         .lineWidth = 1.0f,
     };

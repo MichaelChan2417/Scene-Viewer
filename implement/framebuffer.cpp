@@ -66,7 +66,7 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
-    VkRenderPassBeginInfo renderPassInfo{
+    VkRenderPassBeginInfo renderPassInfo {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         .renderPass = renderPass,
         .framebuffer = swapChainFramebuffers[imageIndex],
@@ -81,7 +81,7 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
     // bind graphics pipeline
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    VkViewport viewport{
+    VkViewport viewport {
         .x = 0.0f,
         .y = 0.0f,
         .width = static_cast<float>(swapChainExtent.width),
@@ -94,22 +94,25 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     VkRect2D scissor{};
     scissor.offset = {0, 0};
     scissor.extent = swapChainExtent;
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);            
+
+    // std::cout << "Extent Size is " << swapChainExtent.width << " " << swapChainExtent.height << std::endl;
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
     
     // this is actually drawing
     vkCmdDraw(commandBuffer,
-        static_cast<uint32_t>(static_vertices.size()),      /* Vertex Count */
+        static_cast<uint32_t>(frame_vertices_static[currentFrame].size()),      /* Vertex Count */
         1,      /* Instance Count */
         0,      /* First Vertex, defines lowest value of gl_VertexIndex */
         0
     );
 
     // if with index buffer
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
     // vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
     // vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
@@ -126,10 +129,10 @@ void SceneViewer::createSyncObjects() {
     renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 
-    VkSemaphoreCreateInfo semaphoreInfo{
+    VkSemaphoreCreateInfo semaphoreInfo {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
     };
-    VkFenceCreateInfo fenceInfo{
+    VkFenceCreateInfo fenceInfo {
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
         .flags = VK_FENCE_CREATE_SIGNALED_BIT,
     };
@@ -165,6 +168,7 @@ void SceneViewer::drawFrame() {
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
+    
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
     // submit command buffer to graphics queue

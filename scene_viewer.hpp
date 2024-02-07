@@ -9,22 +9,23 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
-#include <stdexcept>
-#include <cstdlib>
-#include <vector>
 #include <unordered_set>
 #include <cstring>
 #include <optional>
 #include <cstdint> 
 #include <limits> 
 #include <algorithm>
+#include <cstdlib>
 #include <fstream>
 #include <chrono>
 
 #include "libs/cglm.hpp"
 
+#include "scene_config.hpp"
+
 struct Vertex {
     cglm::Vec3f pos;
+    cglm::Vec3f normal;
     cglm::Vec3f color;
     // glm::vec2 pos;
     // glm::vec3 color;
@@ -61,7 +62,7 @@ struct UniformBufferObject {
     cglm::Mat44f proj;
 };
 
-extern std::vector<Vertex> static_vertices;
+extern std::vector<std::vector<Vertex>> frame_vertices_static;
 // = {
     // {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
     // {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
@@ -125,12 +126,15 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 class SceneViewer {
 public:
     int window_width = 800, window_height = 600;        // default value of 800 x 600
-    std::optional < std::string > scene_file = std::nullopt;
-    std::optional < std::string > camera_name = std::nullopt;
+    sconfig::SceneConfig scene_config;
+    std::string scene_file;
+    std::string camera_name = "default";
+    std::string events;
     std::optional < std::string > device_name = std::nullopt;
-    std::optional < std::string > events = std::nullopt;
 
     void run() {
+        scene_config.load_scene(scene_file);
+        // useless_prepare_vertices();
         initWindow();
         initVulkan();
         mainLoop();
@@ -186,8 +190,11 @@ public:
     void initVulkan();
     void mainLoop();
     void cleanup();
-
+    void assignCurrentFrame();
+    
+    void useless_prepare_vertices();
     // =================== inner functions ===================
+
     void createInstance();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
@@ -209,6 +216,7 @@ public:
     void createIndexBuffer();
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    void copyVertexToBuffer();
 
     // framebuffer
     void createFramebuffers();

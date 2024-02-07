@@ -10,7 +10,7 @@ LDFLAGS = -L$(GLFWPATHLIB) -L$(VULKANPATH)/Lib -lglfw3dll -lvulkan-1
 
 
 # 源文件列表
-SOURCES = scene_viewer.cpp main.cpp libs\mcjp.cpp \
+SOURCES = scene_viewer.cpp main.cpp scene_config.cpp libs\mcjp.cpp \
 			implement\instance.cpp \
 			implement\validation_layer.cpp \
 			implement\physical_device.cpp \
@@ -43,13 +43,16 @@ subtest: main.o mcjp.o
 	$(CXX) $(CXXFLAGS) -o Subtest.exe main.o $(LDFLAGS)
 
 # generating target files
-main.o: main.cpp scene_viewer.hpp libs\mcjp.hpp
+main.o: main.cpp scene_viewer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 mcjp.o: libs\mcjp.cpp libs\mcjp.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-scene_viewer.o: scene_viewer.cpp scene_viewer.hpp libs\cglm.hpp
+scene_config.o: scene_config.cpp scene_config.hpp libs\mcjp.hpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+scene_viewer.o: scene_viewer.cpp scene_viewer.hpp libs\cglm.hpp libs\mcjp.hpp scene_config.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 instance.o: instance.cpp scene_viewer.hpp

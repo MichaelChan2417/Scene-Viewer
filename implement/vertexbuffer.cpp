@@ -1,23 +1,41 @@
 #include "../scene_viewer.hpp"
 
+// void SceneViewer::createVertexBuffer() {
+//     // VkDeviceSize bufferSize = sizeof(static_vertices[0]) * static_vertices.size();
+//     VkDeviceSize bufferSize = sizeof(static_vertices[0]) * scene_config.get_total_vertex_count();
+
+//     VkBuffer stagingBuffer;
+//     VkDeviceMemory stagingBufferMemory;
+//     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+//     void* data;
+//     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+//         memcpy(data, static_vertices.data(), static_cast<size_t>(bufferSize));
+//     vkUnmapMemory(device, stagingBufferMemory);
+
+//     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+
+//     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+//     vkDestroyBuffer(device, stagingBuffer, nullptr);
+//     vkFreeMemory(device, stagingBufferMemory, nullptr);
+// }
+
 void SceneViewer::createVertexBuffer() {
-    VkDeviceSize bufferSize = sizeof(static_vertices[0]) * static_vertices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, static_vertices.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(device, stagingBufferMemory);
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-
-    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    VkDeviceSize bufferSize = sizeof(Vertex) * scene_config.get_total_vertex_count();
+    createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBuffer, vertexBufferMemory);
+    // copyVertexToBuffer();
 }
+
+void SceneViewer::copyVertexToBuffer() {
+    // based on current valid vertices
+    VkDeviceSize bufferSize = sizeof(Vertex) * frame_vertices_static[currentFrame].size();
+    void* data;
+    vkMapMemory(device, vertexBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, frame_vertices_static[currentFrame].data(), static_cast<size_t>(bufferSize));
+    vkUnmapMemory(device, vertexBufferMemory);
+    
+}
+
 
 uint32_t SceneViewer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memProperties;

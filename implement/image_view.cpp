@@ -111,8 +111,18 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
     // ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     // ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f);
     ubo.model = cglm::rotate({0.0f, 0.0f, 1.0f}, time * cglm::to_radians(45.0f));
-    ubo.view = cglm::lookAt(cglm::Vec3f{ 1.0f, 0.2f, 0.2f }, cglm::Vec3f{ 0.0f, 0.0f, 0.0f }, cglm::Vec3f{ 0.0f, 0.0f, 1.0f });
-    ubo.proj = cglm::perspective(cglm::to_radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+    // ubo.view = cglm::lookAt(cglm::Vec3f{ 2.0f, 2.0f, 2.0f }, cglm::Vec3f{ 0.0f, 0.0f, 0.0f }, cglm::Vec3f{ 0.0f, 0.0f, 1.0f });
+    // ubo.proj = cglm::perspective(cglm::to_radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+
+    std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
+    // ubo's view is based on current camera
+    cglm::Vec3f camera_pos = { camera->position[0], camera->position[1], camera->position[2] };
+    cglm::Vec3f view_point = cglm::Vec3f{ 0.0f, 0.0f, 0.0f };;
+    
+    ubo.view = cglm::lookAt(camera_pos, view_point, cglm::Vec3f{ 0.0f, 0.0f, 1.0f });
+
+    // ubo's projection is based on current camera
+    ubo.proj = cglm::perspective(camera->vfov, camera->aspect, camera->near, camera->far);
     ubo.proj[1][1] *= -1;
 
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));

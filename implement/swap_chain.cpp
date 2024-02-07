@@ -119,22 +119,25 @@ VkPresentModeKHR SceneViewer::chooseSwapPresentMode(const std::vector<VkPresentM
 }
 
 VkExtent2D SceneViewer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
-    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-        return capabilities.currentExtent;
-    } else {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
+    // if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+    // if (capabilities.currentExtent.width < window_width) {
+    //     return capabilities.currentExtent;
+    // } else {
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
 
-        VkExtent2D actualExtent = {
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height)
-        };
+    VkExtent2D actualExtent = {
+        static_cast<uint32_t>(width),
+        static_cast<uint32_t>(height)
+    };
 
-        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+    actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
-        return actualExtent;
-    }
+    std::cout << "Actual Extent: " << actualExtent.width << " " << actualExtent.height << std::endl;
+
+    return actualExtent;
+    // }
 }
 
 void SceneViewer::recreateSwapChain() {
@@ -155,6 +158,10 @@ void SceneViewer::recreateSwapChain() {
 }
 
 void SceneViewer::cleanupSwapChain() {
+    vkDestroyImageView(device, depthImageView, nullptr);
+    vkDestroyImage(device, depthImage, nullptr);
+    vkFreeMemory(device, depthImageMemory, nullptr);
+
     for (auto framebuffer : swapChainFramebuffers) {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
