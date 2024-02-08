@@ -131,10 +131,12 @@ VkExtent2D SceneViewer::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabil
         static_cast<uint32_t>(height)
     };
 
-    actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-    actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+    // actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    // actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
-    std::cout << "Actual Extent: " << actualExtent.width << " " << actualExtent.height << std::endl;
+    actualExtent.width = window_width;
+    actualExtent.height = window_height;
+    // std::cout << "Actual Extent: " << actualExtent.width << " " << actualExtent.height << std::endl;
 
     return actualExtent;
     // }

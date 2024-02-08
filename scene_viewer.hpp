@@ -19,8 +19,6 @@
 #include <fstream>
 #include <chrono>
 
-#include "libs/cglm.hpp"
-
 #include "scene_config.hpp"
 
 struct Vertex {
@@ -79,7 +77,6 @@ const std::vector<uint16_t> indices = {
     0, 1, 2, 2, 3, 0,
     4, 5, 6, 6, 7, 4
 };
-
 
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -184,6 +181,8 @@ public:
     VkImage depthImage;                 // depth test over image
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
+
+    std::chrono::high_resolution_clock::time_point startTime;
 
     // interfaces
     void initWindow();

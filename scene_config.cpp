@@ -78,6 +78,22 @@ namespace sconfig {
             mesh->colors.push_back(static_cast<float>(b) / 255.0f);
         }
 
+        // create a bounding sphere
+        mesh->center = { (mesh->positions[0] + mesh->positions[3]) / 2.0f, (mesh->positions[1] + mesh->positions[4]) / 2.0f, (mesh->positions[2] + mesh->positions[5]) / 2.0f };
+        mesh->radius = cglm::length(cglm::Vec3f{ mesh->positions[0] - mesh->center[0], mesh->positions[1] - mesh->center[1], mesh->positions[2] - mesh->center[2] });
+
+        for (size_t i=2; i<mesh->vertex_count; i++) {
+            cglm::Vec3f pos = { mesh->positions[i*3], mesh->positions[i*3+1], mesh->positions[i*3+2] };
+            float dist = cglm::length(pos - mesh->center);
+            // update the center and radius, called ritter's algorithm
+            if (dist > mesh->radius) {
+                float alpha = cglm::length(pos - mesh->center) / (2.0f * mesh->radius);
+                float beta = 1 - alpha;
+                mesh->center = pos * alpha + mesh->center * beta;
+                mesh->radius = (dist + mesh->radius) / 2.0f;
+            }
+        }
+
         return mesh;
     }
 

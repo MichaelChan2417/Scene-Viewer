@@ -26,6 +26,9 @@ void SceneViewer::initVulkan() {
     createDescriptorSets();
     createCommandBuffers();
     createSyncObjects();
+    
+    
+    startTime = std::chrono::high_resolution_clock::now();
 }
 
 void SceneViewer::cleanup() {
@@ -109,13 +112,45 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
     }
 }
 
+void SceneViewer::useless_prepare_vertices() {
+    std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
+
+    for (size_t idx = 0; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
+        frame_vertices_static[idx].clear();
+        for (auto& [id, mesh] : scene_config.id2mesh) {
+            // check mesh's bounding sphere
+            for (int i = 0; i < mesh->vertex_count; i++) {
+                Vertex vertex{};
+                vertex.pos = { mesh->positions[i * 3], mesh->positions[i * 3 + 1], mesh->positions[i * 3 + 2] };
+                vertex.color = { mesh->colors[i * 3], mesh->colors[i * 3 + 1], mesh->colors[i * 3 + 2] };
+                frame_vertices_static[idx].push_back(vertex);
+            }
+        }
+    }
+    
+}
+
 
 // based on current scene/camera, assign the current frame with correct vertex data
 void SceneViewer::assignCurrentFrame() {
     std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
     frame_vertices_static[currentFrame].clear();
-    // std::cout << "Current Camera: " << scene_config.cur_camera << std::endl;
+    std::cout << "Current Camera: " << scene_config.cur_camera << std::endl;
     for (auto& [id, mesh] : scene_config.id2mesh) {
+        cglm::Vec3f camera_pos = { camera->position[0], camera->position[1], camera->position[2] };
+        cglm::Vec3f dir = cglm::Vec3f{ 0.0f, 0.0f, 0.0f } - camera_pos;
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        cglm::Mat44f rot_z = cglm::rotate({ 0.0f, 0.0f, 1.0f }, time * cglm::to_radians(30.0f));
+        cglm::Vec3f view_point = camera_pos + rot_z * dir;
+
+        cglm::Mat44f view_matrix = cglm::lookAt(camera_pos, view_point, cglm::Vec3f{ 0.0f, 0.0f, 1.0f });
+        cglm::Mat44f proj_matrix = cglm::perspective(camera->vfov, camera->aspect, camera->near, camera->far);
+
+        cglm::Vec4f pos = { mesh->center[0], mesh->center[1], mesh->center[2], 1.0f };
+        cglm::Vec4f proj_pos = proj_matrix * view_matrix * pos;
+        proj_pos /= proj_pos[3];
+
         for (int i = 0; i < mesh->vertex_count; i++) {
             Vertex vertex{};
             vertex.pos = { mesh->positions[i * 3], mesh->positions[i * 3 + 1], mesh->positions[i * 3 + 2] };
@@ -128,21 +163,4 @@ void SceneViewer::assignCurrentFrame() {
     // std::cout << "Static Vertices: " << static_vertices.size() << std::endl;
     // std::cout << "Total Vertex Count: " << scene_config.get_total_vertex_count() << std::endl;
     copyVertexToBuffer();
-}
-
-void SceneViewer::useless_prepare_vertices() {
-    std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
-
-    for (size_t idx = 0; idx < MAX_FRAMES_IN_FLIGHT; idx++) {
-        frame_vertices_static[idx].clear();
-        for (auto& [id, mesh] : scene_config.id2mesh) {
-            for (int i = 0; i < mesh->vertex_count; i++) {
-                Vertex vertex{};
-                vertex.pos = { mesh->positions[i * 3], mesh->positions[i * 3 + 1], mesh->positions[i * 3 + 2] };
-                vertex.color = { mesh->colors[i * 3], mesh->colors[i * 3 + 1], mesh->colors[i * 3 + 2] };
-                frame_vertices_static[idx].push_back(vertex);
-            }
-        }
-    }
-    
 }

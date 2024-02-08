@@ -8,7 +8,7 @@
 #include <memory>
 #include <stdexcept>
 
-
+#include "libs/cglm.hpp"
 #include "libs/mcjp.hpp"
 
 struct FloatData {
@@ -48,6 +48,10 @@ namespace sconfig {
         std::string normal_format;
         std::vector<float> colors;
         std::string color_format;
+
+        // create a bounding shpere
+        cglm::Vec3f center = { 0.0f, 0.0f, 0.0f };
+        float radius = 0.0f;
     };
 
     struct Node {

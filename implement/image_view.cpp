@@ -101,7 +101,6 @@ void SceneViewer::createUniformBuffers() {
 }
 
 void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
-    static auto startTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
@@ -117,8 +116,10 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
     std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
     // ubo's view is based on current camera
     cglm::Vec3f camera_pos = { camera->position[0], camera->position[1], camera->position[2] };
-    cglm::Vec3f view_point = cglm::Vec3f{ 0.0f, 0.0f, 0.0f };;
-    
+    cglm::Vec3f dir = cglm::Vec3f{ 0.0f, 0.0f, 0.0f } - camera_pos;
+    cglm::Mat44f rot_z = cglm::rotate({0.0f, 0.0f, 1.0f}, time * cglm::to_radians(30.0f));
+    cglm::Vec3f view_point = camera_pos + rot_z * dir;
+
     ubo.view = cglm::lookAt(camera_pos, view_point, cglm::Vec3f{ 0.0f, 0.0f, 1.0f });
 
     // ubo's projection is based on current camera
