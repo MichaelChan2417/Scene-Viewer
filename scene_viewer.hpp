@@ -184,6 +184,9 @@ public:
 
     std::chrono::high_resolution_clock::time_point startTime;
 
+    static bool leftMouseButtonPressed;
+    static double lastXPos, lastYPos;
+
     // interfaces
     void initWindow();
     void initVulkan();
@@ -191,7 +194,10 @@ public:
     void cleanup();
     void assignCurrentFrame();
     
-    void useless_prepare_vertices();
+    static void mouse_control_callback(GLFWwindow* window, int button, int action, int mods);
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+    static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     // =================== inner functions ===================
 
     void createInstance();
@@ -224,7 +230,6 @@ public:
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void drawFrame();
     void createSyncObjects();
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
     // graphics pipeline
     void createGraphicsPipeline();

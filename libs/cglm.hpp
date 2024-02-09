@@ -500,7 +500,50 @@ namespace cglm {
         );
     }
 
-    
+    template <typename T> Mat44<T> translation(Vec3<T> v) {
+        return Mat44<T>(
+            {1, 0, 0, 0},
+            {0, 1, 0, 0},
+            {0, 0, 1, 0},
+            {v.x, v.y, v.z, 1}
+        );
+    }
+
+    template <typename T> Mat44<T> rotation(Vec4<T> r) {
+        T x = r.x;
+        T y = r.y;
+        T z = r.z;
+        T w = r.w;
+
+        T x2 = x + x;
+        T y2 = y + y;
+        T z2 = z + z;
+        T xx = x * x2;
+        T xy = x * y2;
+        T xz = x * z2;
+        T yy = y * y2;
+        T yz = y * z2;
+        T zz = z * z2;
+        T wx = w * x2;
+        T wy = w * y2;
+        T wz = w * z2;
+
+        return Mat44<T>(
+            {1 - (yy + zz), xy + wz, xz - wy, 0},
+            {xy - wz, 1 - (xx + zz), yz + wx, 0},
+            {xz + wy, yz - wx, 1 - (xx + yy), 0},
+            {0, 0, 0, 1}
+        );
+    }
+
+    template <typename T> Mat44<T> scale(Vec3<T> s) {
+        return Mat44<T>(
+            {s.x, 0, 0, 0},
+            {0, s.y, 0, 0},
+            {0, 0, s.z, 0},
+            {0, 0, 0, 1}
+        );
+    }
 
     using Mat44f = Mat44<float>;
     using Mat44d = Mat44<double>;

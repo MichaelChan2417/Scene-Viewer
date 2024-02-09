@@ -1,5 +1,7 @@
 #include "cglm.hpp"
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 // g++ -o tectc cglm.cpp -ID:\STUDY\Libs\glm -std=c++17
 
@@ -61,24 +63,24 @@ int main() {
 
 
     // Now test perspective Matrix
-    cglm::Mat44f proj_matrix = cglm::perspective(cglm::to_radians(45.0f), 800.0f / 600.0f, 0.1f, 10.0f);
-    std::cout << "CGLM:" << std::endl;
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            std::cout << proj_matrix(i, j) << " ";
-        }
-        std::cout << std::endl;
-    }
+    // cglm::Mat44f proj_matrix = cglm::perspective(cglm::to_radians(45.0f), 800.0f / 600.0f, 0.1f, 10.0f);
+    // std::cout << "CGLM:" << std::endl;
+    // for (int i = 0; i < 4; i++) {
+    //     for (int j = 0; j < 4; j++) {
+    //         std::cout << proj_matrix(i, j) << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 
-    // Now test perspective Matrix
-    glm::mat4 proj_matrix_glm = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 10.0f);
-    std::cout << "GLM:" << std::endl;
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            std::cout << proj_matrix_glm[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
+    // // Now test perspective Matrix
+    // glm::mat4 proj_matrix_glm = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 10.0f);
+    // std::cout << "GLM:" << std::endl;
+    // for (int i = 0; i < 4; i++) {
+    //     for (int j = 0; j < 4; j++) {
+    //         std::cout << proj_matrix_glm[i][j] << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 
     // // generate mat44 and print
     // cglm::Mat44f mat44 = {
@@ -119,4 +121,50 @@ int main() {
     // cglm::Vec4f v1_cglm = mat44 * v_cglm;
     // std::cout << "CGLM: " << v1_cglm[0] << " " << v1_cglm[1] << " " << v1_cglm[2] << " " << v1_cglm[3] << std::endl;
 
+
+    // Test translation
+    // cglm::Vec3f v = { 1.0f, 2.0f, 3.0f };
+    // cglm::Mat44f translation = cglm::translation(v);
+    // std::cout << "CGLM:" << std::endl;
+    // for (int i = 0; i < 4; i++) {
+    //     for (int j = 0; j < 4; j++) {
+    //         std::cout << translation(i, j) << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
+    // Test translation
+    // glm::vec3 v_glm = { 1.0f, 2.0f, 3.0f };
+    // glm::mat4 translation_glm = glm::translate(glm::mat4(1.0f), v_glm);
+    // std::cout << "GLM:" << std::endl;
+    // for (int i = 0; i < 4; i++) {
+    //     for (int j = 0; j < 4; j++) {
+    //         std::cout << translation_glm[i][j] << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
+
+    // Test rotation
+    // cglm::Vec4f v = { 0.667428,-0.233539,-0.233539,0.667428 };
+    // cglm::Mat44f rot = cglm::rotation(v);
+    // std::cout << "CGLM:" << std::endl;
+    // for (int i = 0; i < 4; i++) {
+    //     for (int j = 0; j < 4; j++) {
+    //         std::cout << rot(i, j) << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
+    // // Test rotation
+    // glm::vec4 v_glm = { 0.667428,-0.233539,-0.233539,0.667428 };
+    // glm::quat rotationQuat = glm::quat(v_glm[3], v_glm[0], v_glm[1], v_glm[2]);
+    // glm::mat4 res = glm::mat4_cast(rotationQuat);
+    // std::cout << "GLM:" << std::endl;
+    // for (int i = 0; i < 4; i++) {
+    //     for (int j = 0; j < 4; j++) {
+    //         std::cout << res[i][j] << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 }

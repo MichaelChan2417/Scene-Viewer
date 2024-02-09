@@ -67,7 +67,7 @@ void SceneViewer::createImage(uint32_t width, uint32_t height, VkFormat format, 
 }
 
 void SceneViewer::createDescriptorSetLayout() {
-    VkDescriptorSetLayoutBinding uboLayoutBinding{
+    VkDescriptorSetLayoutBinding uboLayoutBinding {
         .binding = 0,
         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = 1,
@@ -75,7 +75,7 @@ void SceneViewer::createDescriptorSetLayout() {
         .pImmutableSamplers = nullptr,
     };
 
-    VkDescriptorSetLayoutCreateInfo layoutInfo{
+    VkDescriptorSetLayoutCreateInfo layoutInfo {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
         .bindingCount = 1,
         .pBindings = &uboLayoutBinding,
@@ -109,18 +109,13 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
     // ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     // ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     // ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f);
-    ubo.model = cglm::rotate({0.0f, 0.0f, 1.0f}, time * cglm::to_radians(45.0f));
-    // ubo.view = cglm::lookAt(cglm::Vec3f{ 2.0f, 2.0f, 2.0f }, cglm::Vec3f{ 0.0f, 0.0f, 0.0f }, cglm::Vec3f{ 0.0f, 0.0f, 1.0f });
-    // ubo.proj = cglm::perspective(cglm::to_radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+    ubo.model = cglm::rotate({0.0f, 1.0f, 0.0f}, time * cglm::to_radians(45.0f));
 
     std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
     // ubo's view is based on current camera
-    cglm::Vec3f camera_pos = { camera->position[0], camera->position[1], camera->position[2] };
-    cglm::Vec3f dir = cglm::Vec3f{ 0.0f, 0.0f, 0.0f } - camera_pos;
-    cglm::Mat44f rot_z = cglm::rotate({0.0f, 0.0f, 1.0f}, time * cglm::to_radians(30.0f));
-    cglm::Vec3f view_point = camera_pos + rot_z * dir;
-
-    ubo.view = cglm::lookAt(camera_pos, view_point, cglm::Vec3f{ 0.0f, 0.0f, 1.0f });
+    cglm::Vec3f camera_pos = camera->position;
+    cglm::Vec3f view_point = camera->position + camera->dir;
+    ubo.view = cglm::lookAt(camera_pos, view_point, camera->up);
 
     // ubo's projection is based on current camera
     ubo.proj = cglm::perspective(camera->vfov, camera->aspect, camera->near, camera->far);

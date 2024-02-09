@@ -30,7 +30,9 @@ namespace sconfig {
         float near;
         float far;
 
-        std::array<float, 3> position = { 0.0f, 2.0f, 0.0f };
+        cglm::Vec3f position = { 0.0f, 0.0f, 2.0f };
+        cglm::Vec3f dir = { 0.0f, 0.0f, -1.0f };
+        cglm::Vec3f up = { 0.0f, 1.0f, 0.0f };
     };
 
     struct Mesh {
@@ -38,7 +40,7 @@ namespace sconfig {
         std::string name;
         std::string topology;
 
-        int vertex_count;
+        size_t vertex_count;
         std::vector<uint32_t> indices;      // this is optional, if not present, then the mesh is non-indexed
 
         // vertex data
@@ -56,25 +58,41 @@ namespace sconfig {
 
     struct Node {
         int id;
+        size_t vertex_count;
         std::string name;
-        std::array<int, 3> translation = { 0, 0, 0 };
-        std::array<int, 4> rotation = { 0, 0, 0, 1 };
-        std::array<int, 3> scale = { 1, 1, 1 };
+        cglm::Mat44f transform;
         std::vector<int> children;
+        std::vector<int> mesh;
+
+        std::vector<float> positions;
+        std::vector<float> normals;
+        std::vector<float> colors;
+
         int camera;
-        int mesh;
+    };
+
+    struct Scene {
+        std::string name;
+        std::vector<int> children;
     };
 
     struct SceneConfig {
         std::unordered_map<std::string, std::shared_ptr<Camera>> cameras;
         std::unordered_map<int, std::shared_ptr<Mesh>> id2mesh;
         std::unordered_map<int, std::shared_ptr<Node>> id2node;
+        std::shared_ptr<Scene> scene;
 
         std::string cur_camera;
         int cur_node;
 
         void load_scene(const std::string& scene_file_name);
         size_t get_total_vertex_count();
+
+        // parser
+        std::shared_ptr<Camera> generateCamera(const mcjp::Object* obj);
+        std::shared_ptr<Mesh> generateMesh(const mcjp::Object* obj);
+        std::shared_ptr<Node> generateNode(const mcjp::Object* obj);
+        std::shared_ptr<Scene> generateScene(const mcjp::Object* obj);
     };
 
 

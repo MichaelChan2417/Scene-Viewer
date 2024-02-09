@@ -12,7 +12,7 @@ void parse_arguments(int argc, char* argv[], int& w, int& h, std::string& scene_
 int main(int argc, char* argv[]) {
 
     // handling arguments
-    int w, h;
+    int w = 0, h = 0;
     std::string scene_file, camera_name, device_name, events;
     bool list_devices = false;
     parse_arguments(argc, argv, w, h, scene_file, camera_name, device_name, events, list_devices);
