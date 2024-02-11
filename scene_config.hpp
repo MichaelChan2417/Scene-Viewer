@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <algorithm>
 #include <stdexcept>
 
 #include "libs/cglm.hpp"
@@ -23,6 +24,11 @@ struct RgbaData {
 
 namespace sconfig {
 
+    struct Plane {
+        cglm::Vec3f normal;
+        float d;
+    };
+
     struct Camera {
         std::string name;
         float aspect;
@@ -30,9 +36,17 @@ namespace sconfig {
         float near;
         float far;
 
-        cglm::Vec3f position = { 0.0f, 0.0f, 2.0f };
+        float boundary_view;
+
+        cglm::Vec3f position = { 0.0f, 0.0f, 0.0f };
         cglm::Vec3f dir = { 0.0f, 0.0f, -1.0f };
         cglm::Vec3f up = { 0.0f, 1.0f, 0.0f };
+
+        std::vector<std::shared_ptr<Plane>> bounds;
+        cglm::Mat44f lookAt_mat;
+        cglm::Mat44f proj_mat;
+
+        void update_planes();
     };
 
     struct Mesh {
@@ -44,16 +58,22 @@ namespace sconfig {
         std::vector<uint32_t> indices;      // this is optional, if not present, then the mesh is non-indexed
 
         // vertex data
-        std::vector<float> positions;
+        std::vector<cglm::Vec3f> positions;
         std::string position_format;
-        std::vector<float> normals;
+        std::vector<cglm::Vec3f> normals;
         std::string normal_format;
-        std::vector<float> colors;
+        std::vector<cglm::Vec3f> colors;
         std::string color_format;
 
         // create a bounding shpere
-        cglm::Vec3f center = { 0.0f, 0.0f, 0.0f };
-        float radius = 0.0f;
+        // cglm::Vec3f center = { 0.0f, 0.0f, 0.0f };
+        // float radius = 0.0f;
+    };
+
+    struct Bound_Sphere {
+        cglm::Vec3f center;
+        float radius;
+        size_t startIdx, endIdx; // [,)
     };
 
     struct Node {
@@ -64,9 +84,11 @@ namespace sconfig {
         std::vector<int> children;
         std::vector<int> mesh;
 
-        std::vector<float> positions;
-        std::vector<float> normals;
-        std::vector<float> colors;
+        std::vector<cglm::Vec3f> positions;
+        std::vector<cglm::Vec3f> normals;
+        std::vector<cglm::Vec3f> colors;
+
+        std::vector<std::shared_ptr<Bound_Sphere>> bound_spheres;
 
         int camera;
     };

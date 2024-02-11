@@ -66,54 +66,62 @@ namespace mcjp {
                     else {
                         // it's a number, but could be int or double
                         value = value.substr(1, value.size() - 2);  // remove '[' and ']'
-                        if (value.find('.') != std::string::npos) {
-                            // it's a double
-                            std::vector<double> nvec;
-                            std::stringstream ss(value);
-                            std::string token;
-                            for (int i = 0; std::getline(ss, token, ','); i++) {
-                                try {
-                                    double doubleVal = std::stod(token);
-                                    nvec.push_back(doubleVal);
-                                }
-                                catch (std::invalid_argument& ex) {
-                                    std::cout << "Error: invalid number: " << token << std::endl;
-                                }
+                        // if (value.find('.') != std::string::npos) {
+                        // always a double
+                        std::vector<double> nvec;
+                        std::stringstream ss(value);
+                        std::string token;
+                        for (int i = 0; std::getline(ss, token, ','); i++) {
+                            try {
+                                double doubleVal = std::stod(token);
+                                nvec.push_back(doubleVal);
                             }
-                            res->contents[key] = nvec;
-                        }
-                        else {
-                            // it's an int
-                            std::vector<int> nvec;
-                            std::stringstream ss(value);
-                            std::string token;
-                            for (int i = 0; std::getline(ss, token, ','); i++) {
-                                try {
-                                    int intVal = std::stoi(token);
-                                    nvec.push_back(intVal);
-                                }
-                                catch (std::invalid_argument& ex) {
-                                    std::cout << "Error: invalid number: " << token << std::endl;
-                                }
+                            catch (std::invalid_argument& ex) {
+                                std::cout << "Error: invalid number: " << token << std::endl;
                             }
-                            res->contents[key] = nvec;
                         }
+                        res->contents[key] = nvec;
+                        // }
+                        // else {
+                        //     // it's an int
+                        //     std::vector<int> nvec;
+                        //     std::stringstream ss(value);
+                        //     std::string token;
+                        //     for (int i = 0; std::getline(ss, token, ','); i++) {
+                        //         try {
+                        //             int intVal = std::stoi(token);
+                        //             nvec.push_back(intVal);
+                        //         }
+                        //         catch (std::invalid_argument& ex) {
+                        //             std::cout << "Error: invalid number: " << token << std::endl;
+                        //         }
+                        //     }
+                        //     res->contents[key] = nvec;
+                        // }
                     }
                 }
                 else {
                     // it's a number
+                    // try {
+                    //     int intVal = std::stoi(value);
+                    //     res->contents[key] = intVal;
+                    // }
+                    // catch (std::invalid_argument& ex) {
+                    //     try {
+                    //         double doubleVal = std::stod(value);
+                    //         res->contents[key] = doubleVal;
+                    //     }
+                    //     catch (std::invalid_argument& ex) {
+                    //         std::cout << "Error: invalid number: " << value << std::endl;
+                    //     }
+                    // }
+                    // always use double
                     try {
-                        int intVal = std::stoi(value);
-                        res->contents[key] = intVal;
+                        double doubleVal = std::stod(value);
+                        res->contents[key] = doubleVal;
                     }
                     catch (std::invalid_argument& ex) {
-                        try {
-                            double doubleVal = std::stod(value);
-                            res->contents[key] = doubleVal;
-                        }
-                        catch (std::invalid_argument& ex) {
-                            std::cout << "Error: invalid number: " << value << std::endl;
-                        }
+                        std::cout << "Error: invalid number: " << value << std::endl;
                     }
                 }
 
@@ -162,54 +170,62 @@ namespace mcjp {
             else {
                 // it's a number, but could be int or double
                 value = value.substr(1, value.size() - 2);  // remove '[' and ']'
-                if (value.find('.') != std::string::npos) {
-                    // it's a double
-                    std::vector<double> nvec;
-                    std::stringstream ss(value);
-                    std::string token;
-                    for (int i = 0; std::getline(ss, token, ','); i++) {
-                        try {
-                            double doubleVal = std::stod(token);
-                            nvec.push_back(doubleVal);
-                        }
-                        catch (std::invalid_argument& ex) {
-                            std::cout << "Error: invalid number: " << token << std::endl;
-                        }
+                // if (value.find('.') != std::string::npos) {
+                // always use a double
+                std::vector<double> nvec;
+                std::stringstream ss(value);
+                std::string token;
+                for (int i = 0; std::getline(ss, token, ','); i++) {
+                    try {
+                        double doubleVal = std::stod(token);
+                        nvec.push_back(doubleVal);
                     }
-                    res->contents[key] = nvec;
-                }
-                else {
-                    // it's an int
-                    std::vector<int> nvec;
-                    std::stringstream ss(value);
-                    std::string token;
-                    for (int i = 0; std::getline(ss, token, ','); i++) {
-                        try {
-                            int intVal = std::stoi(token);
-                            nvec.push_back(intVal);
-                        }
-                        catch (std::invalid_argument& ex) {
-                            std::cout << "Error: invalid number: " << token << std::endl;
-                        }
+                    catch (std::invalid_argument& ex) {
+                        std::cout << "Error: invalid number: " << token << std::endl;
                     }
-                    res->contents[key] = nvec;
                 }
+                res->contents[key] = nvec;
+                // }
+                // else {
+                //     // it's an int
+                //     std::vector<int> nvec;
+                //     std::stringstream ss(value);
+                //     std::string token;
+                //     for (int i = 0; std::getline(ss, token, ','); i++) {
+                //         try {
+                //             int intVal = std::stoi(token);
+                //             nvec.push_back(intVal);
+                //         }
+                //         catch (std::invalid_argument& ex) {
+                //             std::cout << "Error: invalid number: " << token << std::endl;
+                //         }
+                //     }
+                //     res->contents[key] = nvec;
+                // }
             }
         }
         else {
             // it's a number
+            // try {
+            //     int intVal = std::stoi(value);
+            //     res->contents[key] = intVal;
+            // }
+            // catch (std::invalid_argument& ex) {
+            //     try {
+            //         double doubleVal = std::stod(value);
+            //         res->contents[key] = doubleVal;
+            //     }
+            //     catch (std::invalid_argument& ex) {
+            //         std::cout << "Error: invalid number: " << value << std::endl;
+            //     }
+            // }
+            // always use double
             try {
-                int intVal = std::stoi(value);
-                res->contents[key] = intVal;
+                double doubleVal = std::stod(value);
+                res->contents[key] = doubleVal;
             }
             catch (std::invalid_argument& ex) {
-                try {
-                    double doubleVal = std::stod(value);
-                    res->contents[key] = doubleVal;
-                }
-                catch (std::invalid_argument& ex) {
-                    std::cout << "Error: invalid number: " << value << std::endl;
-                }
+                std::cout << "Error: invalid number: " << value << std::endl;
             }
         }
 
@@ -267,7 +283,9 @@ namespace mcjp {
     
     Result load(const std::string& filename) {
         std::ifstream in(filename, std::ios::binary);
-        return parse(in);
+        Result res = parse(in);
+        in.close();
+        return res;
     }
     
     void filter(const std::string& str, std::string& res) {

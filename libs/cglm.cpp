@@ -6,6 +6,50 @@
 // g++ -o tectc cglm.cpp -ID:\STUDY\Libs\glm -std=c++17
 
 int main() {
+    // randomly generate a Mat44f that can inverse
+    cglm::Mat44f mat44 = {
+        {2.0f, 1.0f, 3.0f, 4.0f},
+        {-1.0f, 0.0f, 2.0f, -3.0f},
+        {0.0f, 1.0f, 2.0f, 1.0f},
+        {3.0f, -2.0f, 1.0f, 5.0f}
+    };
+    // generate inverse
+    cglm::Mat44f inv = cglm::inverse(mat44);
+    std::cout << "CGLM:" << std::endl;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            std::cout << inv(i, j) << " ";
+        }
+        std::cout << std::endl;
+    }
+    cglm::Mat44f db = mat44 * inv;
+    std::cout << "CGLM:" << std::endl;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            std::cout << db(i, j) << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    // randomly generate a Mat44f
+    glm::mat4 mat44_glm = {
+        {2.0f, 1.0f, 3.0f, 4.0f},
+        {-1.0f, 0.0f, 2.0f, -3.0f},
+        {0.0f, 1.0f, 2.0f, 1.0f},
+        {3.0f, -2.0f, 1.0f, 5.0f}
+    };
+    // generate inverse
+    glm::mat4 inv_glm = glm::inverse(mat44_glm);
+    std::cout << "GLM:" << std::endl;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            std::cout << inv_glm[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+
+
     // cglm::Vec3f v0 = { 1.0f, 2.0f, 3.0f };
     // cglm::Mat44f rot_y = cglm::rotate({ 0.0f, 1.0f, 0.0f }, cglm::to_radians(90.0f));
     // cglm::Vec3f v1 = rot_y * v0;
@@ -35,7 +79,7 @@ int main() {
     //     std::cout << std::endl;
     // }
 
-    // Now test lookAt Matrix
+    // // Now test lookAt Matrix
     // cglm::Vec3f camera_pos = { 1.0f, 2.0f, 3.0f };
     // cglm::Vec3f view_point = { 0.0f, 0.0f, 0.0f };
     // cglm::Vec3f up = { 0.0f, 0.0f, 1.0f };

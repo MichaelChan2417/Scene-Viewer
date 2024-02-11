@@ -545,6 +545,11 @@ namespace cglm {
         );
     }
 
+    template <typename T> Vec3<T> transform_point(const Vec3<T>& p, const Mat44<T>& m) {
+        Vec4<T> v = m * Vec4<T>(p, (T)1);
+        return Vec3<T>(v.x / v.w, v.y / v.w, v.z / v.w);
+    }
+
     using Mat44f = Mat44<float>;
     using Mat44d = Mat44<double>;
 

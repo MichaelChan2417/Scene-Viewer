@@ -125,7 +125,7 @@ public:
     int window_width = 800, window_height = 600;        // default value of 800 x 600
     sconfig::SceneConfig scene_config;
     std::string scene_file;
-    std::string camera_name = "default";
+    std::string camera_name = "debug";
     std::string events;
     std::optional < std::string > device_name = std::nullopt;
 
