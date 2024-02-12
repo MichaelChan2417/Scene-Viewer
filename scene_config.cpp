@@ -2,7 +2,7 @@
 
 namespace sconfig {
 
-    inline float distanceToPlane(const cglm::Vec3f& point, const std::shared_ptr<Plane>& plane) {
+    inline float orgDistanceToPlane(const cglm::Vec3f& point, const std::shared_ptr<Plane>& plane) {
         return cglm::dot(plane->normal, point);
     }
 
@@ -22,44 +22,65 @@ namespace sconfig {
         cglm::Vec3f dy1 = this->up * (this->far * tan(this->vfov / 2));
         cglm::Vec3f dx1 = cglm::normalize(cglm::cross(this->dir, dy1)) * this->far * this->aspect * tan(this->vfov / 2);
 
-        cglm::Vec3f p0 = cglm::transform_point(front_o - dx0 + dy0, inv_vp);
-        cglm::Vec3f p1 = cglm::transform_point(front_o + dx0 + dy0, inv_vp);
-        cglm::Vec3f p2 = cglm::transform_point(front_o + dx0 - dy0, inv_vp);
-        cglm::Vec3f p3 = cglm::transform_point(front_o - dx0 - dy0, inv_vp);
-        cglm::Vec3f p4 = cglm::transform_point(back_o - dx1 + dy1, inv_vp);
-        cglm::Vec3f p5 = cglm::transform_point(back_o + dx1 + dy1, inv_vp);
-        cglm::Vec3f p6 = cglm::transform_point(back_o + dx1 - dy1, inv_vp);
+        // cglm::Vec3f p0 = cglm::transform_point(front_o - dx0 + dy0, inv_vp);
+        // cglm::Vec3f p1 = cglm::transform_point(front_o + dx0 + dy0, inv_vp);
+        // cglm::Vec3f p2 = cglm::transform_point(front_o + dx0 - dy0, inv_vp);
+        // cglm::Vec3f p3 = cglm::transform_point(front_o - dx0 - dy0, inv_vp);
+        // cglm::Vec3f p4 = cglm::transform_point(back_o - dx1 + dy1, inv_vp);
+        // cglm::Vec3f p5 = cglm::transform_point(back_o + dx1 + dy1, inv_vp);
+        // cglm::Vec3f p6 = cglm::transform_point(back_o + dx1 - dy1, inv_vp);
+        cglm::Vec3f p0 = front_o - dx0 + dy0;
+        cglm::Vec3f p1 = front_o + dx0 + dy0;
+        cglm::Vec3f p2 = front_o + dx0 - dy0;
+        cglm::Vec3f p3 = front_o - dx0 - dy0;
+        cglm::Vec3f p4 = back_o - dx1 + dy1;
+        cglm::Vec3f p5 = back_o + dx1 + dy1;
+        cglm::Vec3f p6 = back_o + dx1 - dy1;
+
+        // std::cout << this->name << " Camera pos: " << camera_pos << " Looking at " << this->dir;
+        // std::cout << " Up is " << this->up << std::endl;
+        // std::cout << "p0 " << p0 << std::endl;
+        // std::cout << "p1 " << p1 << std::endl;
+        // std::cout << "p2 " << p2 << std::endl;
+        // std::cout << "p3 " << p3 << std::endl;
+        // std::cout << "p4 " << p4 << std::endl;
+        // std::cout << "p5 " << p5 << std::endl;
+        // std::cout << "p6 " << p6 << std::endl;
         // front
         std::shared_ptr<Plane> front = std::make_shared<Plane>();
         front->normal = cglm::normalize(cglm::cross(p1 - p0, p2 - p1));
-        front->d = distanceToPlane(p0, front);
+        front->d = orgDistanceToPlane(p0, front);
         this->bounds.push_back(front);
         // back
         std::shared_ptr<Plane> back = std::make_shared<Plane>();
         back->normal = cglm::normalize(cglm::cross(p4 - p5, p6 - p5));
-        back->d = distanceToPlane(p4, back);
+        back->d = orgDistanceToPlane(p4, back);
         this->bounds.push_back(back);
         // left
         std::shared_ptr<Plane> left = std::make_shared<Plane>();
         left->normal = cglm::normalize(cglm::cross(p0 - p4, p3 - p0));
-        left->d = distanceToPlane(p0, left);
+        left->d = orgDistanceToPlane(p0, left);
         this->bounds.push_back(left);
         // right
         std::shared_ptr<Plane> right = std::make_shared<Plane>();
         right->normal = cglm::normalize(cglm::cross(p1 - p2, p5 - p1));
-        right->d = distanceToPlane(p1, right);
+        right->d = orgDistanceToPlane(p1, right);
         this->bounds.push_back(right);
         // top
         std::shared_ptr<Plane> top = std::make_shared<Plane>();
         top->normal = cglm::normalize(cglm::cross(p1 - p0, p0 - p4));
-        top->d = distanceToPlane(p0, top);
+        top->d = orgDistanceToPlane(p0, top);
         this->bounds.push_back(top);
         // bottom
         std::shared_ptr<Plane> bottom = std::make_shared<Plane>();
         bottom->normal = cglm::normalize(cglm::cross(p2 - p3, p6 - p2));
-        bottom->d = distanceToPlane(p2, bottom);
+        bottom->d = orgDistanceToPlane(p2, bottom);
         this->bounds.push_back(bottom);
 
+        // print out all normals to check
+        // for (auto& plane : this->bounds) {
+        //     std::cout << "Plane " << plane->normal << " " << plane->d << std::endl;
+        // }
     }
 
     std::shared_ptr<Camera> SceneConfig::generateCamera(const mcjp::Object* obj) {
@@ -111,6 +132,8 @@ namespace sconfig {
             throw std::runtime_error("Failed to Open SubScene File!");
         }
 
+        // cglm::Vec3f white{ 0.0f, 0.0f, 0.0f };
+        // cglm::Vec3f black{ 1.0f, 1.0f, 1.0f };
         // read vertex_count times, each time read stride bytes
         for (int i = 0; i < mesh->vertex_count; i++) {
             file.seekg(pos_offset + i * stride);
@@ -134,23 +157,11 @@ namespace sconfig {
             file.read(reinterpret_cast<char*>(&b), sizeof(uint8_t));
             file.read(reinterpret_cast<char*>(&a), sizeof(uint8_t));
             mesh->colors.emplace_back(cglm::Vec3f{ static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f, static_cast<float>(b) / 255.0f });
+
+            // color change
+            // cglm::Vec3f light = cglm::mix(white, black, dot(mesh->normals[i], { 0.0f, 0.0f, 1.0f }) * 0.5f + 0.5f);
+            // mesh->colors[i] = light * mesh->colors[i];
         }
-
-        // create a bounding sphere // TODO: bounding spherer may not be useful for mesh
-        // mesh->center = { (mesh->positions[0] + mesh->positions[3]) / 2.0f, (mesh->positions[1] + mesh->positions[4]) / 2.0f, (mesh->positions[2] + mesh->positions[5]) / 2.0f };
-        // mesh->radius = cglm::length(cglm::Vec3f{ mesh->positions[0] - mesh->center[0], mesh->positions[1] - mesh->center[1], mesh->positions[2] - mesh->center[2] });
-
-        // for (size_t i=2; i<mesh->vertex_count; i++) {
-        //     cglm::Vec3f pos = { mesh->positions[i*3], mesh->positions[i*3+1], mesh->positions[i*3+2] };
-        //     float dist = cglm::length(pos - mesh->center);
-        //     // update the center and radius, called ritter's algorithm
-        //     if (dist > mesh->radius) {
-        //         float alpha = cglm::length(pos - mesh->center) / (2.0f * mesh->radius);
-        //         float beta = 1 - alpha;
-        //         mesh->center = pos * alpha + mesh->center * beta;
-        //         mesh->radius = (dist + mesh->radius) / 2.0f;
-        //     }
-        // }
 
         // close file
         file.close();
@@ -206,8 +217,13 @@ namespace sconfig {
         cglm::Mat44f scale_m = cglm::scale(cglm::Vec3f{ static_cast<float>(scale[0]), static_cast<float>(scale[1]), static_cast<float>(scale[2]) });
 
         if (obj->contents.find("camera") != obj->contents.end()) {
-            node->camera = std::get<double>(obj->contents.at("camera"));
-            // TODO: handle camera node
+            node->camera = static_cast<int>(std::get<double>(obj->contents.at("camera")));
+            std::shared_ptr<Camera> camera = cameras[id2camera_name[node->camera]];
+            cglm::Vec4f npos = translate_m * cglm::Vec4f{ camera->position, 1.0f };
+            camera->position = { npos[0] / npos[3], npos[1] / npos[3], npos[2] / npos[3] };
+            camera->dir = rotation_m * camera->dir;
+            camera->up = rotation_m * camera->up;
+            return node;
         }
         
         node->transform = translate_m * rotation_m * scale_m;
@@ -276,23 +292,8 @@ namespace sconfig {
                 bs2->radius = -1.0f;
                 node->bound_spheres.push_back(bs2);
             }
-            // for (size_t i = 0; i < child->vertex_count; i++) {
-            //     cglm::Vec4f pos{child->positions[i], 1.0f};
-            //     cglm::Vec3f normal{child->normals[i]};
-            //     cglm::Vec3f color{child->colors[i]};
-
-            //     cglm::Vec4f mid_pos = node->transform * pos;
-            //     node->positions[offset] = { mid_pos[0] / mid_pos[3], mid_pos[1] / mid_pos[3], mid_pos[2] / mid_pos[3] };
-            //     node->normals[offset] = norm_trans * normal;
-            //     node->colors[offset] = color;
-                
-            //     offset++;
-            // }
+            
         }
-
-        // for (auto& normalss : node->normals) {
-        //     std::cout << normalss << std::endl;
-        // }
 
         return node;
     }
@@ -306,6 +307,14 @@ namespace sconfig {
         // there is only one scene, so we do bounding sphere here
         for (auto& id : scene->children) {
             std::shared_ptr<Node> node = id2node[id];
+            // color modify
+            cglm::Vec3f white{ 0.0f, 0.0f, 0.0f };
+            cglm::Vec3f black{ 1.0f, 1.0f, 1.0f };
+            for (size_t i = 0; i < node->vertex_count; i++) {
+                cglm::Vec3f light = cglm::mix(white, black, dot(node->normals[i], { 0.0f, 0.0f, 1.0f }) * 0.5f + 0.5f);
+                node->colors[i] = light * node->colors[i];
+            }
+            // std::cout << "Node " << id << " " << node->name << " has " << node->vertex_count << " vertices" << std::endl;
             for (auto& bs : node->bound_spheres) {
                 size_t start_ = bs->startIdx, end_ = bs->endIdx;
 
@@ -320,7 +329,7 @@ namespace sconfig {
                     }
                 }
                 clen = 0.0f;
-                for (size_t i = start_ + 1; i < end_; i++) {
+                for (size_t i = start_; i < end_; i++) {
                     if (cglm::length(node->positions[i] - y) > clen) {
                         z = node->positions[i];
                         clen = cglm::length(node->positions[i] - y);
@@ -362,6 +371,7 @@ namespace sconfig {
             if (type == "camera" || type == "CAMERA") {
                 std::shared_ptr<Camera> cameraPtr = generateCamera(obj);
                 cameras[cameraPtr->name] = cameraPtr;
+                id2camera_name[i] = cameraPtr->name;
             }
             else if (type == "mesh" || type == "MESH") {
                 std::shared_ptr<Mesh> meshPtr = generateMesh(obj);
@@ -386,10 +396,12 @@ namespace sconfig {
                 cameraPtr->far = 50.0f;
                 cameraPtr->position = { 0.0f, 0.0f, 4.0f };
                 cameraPtr->up = { 0.0f, 1.0f, 0.0f };
-                cameraPtr->dir = normalize(-cameraPtr->position);
+                cameraPtr->dir = {0.0f, 0.0f, -1.0f};
                 cameraPtr->boundary_view = static_cast<float>(sin(atan(sqrt(1 + pow(cameraPtr->aspect, 2)) * tan(cameraPtr->vfov / 2))));
                 cameras["debug"] = cameraPtr;
+                cameraPtr->update_planes();
                 this->cur_camera = "debug";
+                id2camera_name[-1] = "debug";
             }
             if (cameras["user"] == nullptr) {
                 // we create a default camera
@@ -399,7 +411,13 @@ namespace sconfig {
                 cameraPtr->vfov = 1.04719f;
                 cameraPtr->near = 0.1f;
                 cameraPtr->far = 10.0f;
+                cameraPtr->position = { 0.0f, 0.0f, 4.0f };
+                cameraPtr->up = { 0.0f, 1.0f, 0.0f };
+                cameraPtr->dir = {0.0f, 0.0f, -1.0f};
+                cameraPtr->boundary_view = static_cast<float>(sin(atan(sqrt(1 + pow(cameraPtr->aspect, 2)) * tan(cameraPtr->vfov / 2))));
                 cameras["user"] = cameraPtr;
+                cameraPtr->update_planes();
+                id2camera_name[0] = "user";
             }
         }
 

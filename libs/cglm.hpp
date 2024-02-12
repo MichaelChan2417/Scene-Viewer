@@ -550,6 +550,10 @@ namespace cglm {
         return Vec3<T>(v.x / v.w, v.y / v.w, v.z / v.w);
     }
 
+    template <typename T> Vec3<T> mix(const Vec3<T>& a, const Vec3<T>& b, T t) {
+        return a * (1 - t) + b * t;
+    }
+
     using Mat44f = Mat44<float>;
     using Mat44d = Mat44<double>;
 

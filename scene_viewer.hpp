@@ -126,11 +126,13 @@ public:
     sconfig::SceneConfig scene_config;
     std::string scene_file;
     std::string camera_name = "debug";
+    std::string culling = "none";
     std::string events;
     std::optional < std::string > device_name = std::nullopt;
 
     void run() {
         scene_config.load_scene(scene_file);
+        loadCheck();
         // useless_prepare_vertices();
         initWindow();
         initVulkan();
@@ -193,7 +195,8 @@ public:
     void mainLoop();
     void cleanup();
     void assignCurrentFrame();
-    
+    void loadCheck();
+
     static void mouse_control_callback(GLFWwindow* window, int button, int action, int mods);
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
     static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);

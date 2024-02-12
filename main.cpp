@@ -2,20 +2,20 @@
 
 // #define NDEBUG 1
 
-ASSIGN_RESULT assign_values(SceneViewer& sv, int w, int h, std::string scene_file, std::string camera_name,
-    std::string device_name, std::string events);
+ASSIGN_RESULT assign_values(SceneViewer& sv, int w, int h, std::string& scene_file, std::string& camera_name,
+    std::string& device_name, std::string& events, std::string& culling);
 
 void parse_arguments(int argc, char* argv[], int& w, int& h, std::string& scene_file, std::string& camera_name,
-    std::string& device_name, std::string& events, bool& list_devices);
+    std::string& device_name, std::string& events, bool& list_devices, std::string& culling);
 
 
 int main(int argc, char* argv[]) {
 
     // handling arguments
     int w = 0, h = 0;
-    std::string scene_file, camera_name = "none", device_name, events;
+    std::string scene_file, camera_name = "debug", device_name, events, culling = "none";
     bool list_devices = false;
-    parse_arguments(argc, argv, w, h, scene_file, camera_name, device_name, events, list_devices);
+    parse_arguments(argc, argv, w, h, scene_file, camera_name, device_name, events, list_devices, culling);
 
     SceneViewer scene_viewer;
 
@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     }
 
     // assigning values to scene_viewer
-    if (assign_values(scene_viewer, w, h, scene_file, camera_name, device_name, events) != SUCCESS) {
+    if (assign_values(scene_viewer, w, h, scene_file, camera_name, device_name, events, culling) != SUCCESS) {
         return EXIT_FAILURE;
     }
 
@@ -42,8 +42,8 @@ int main(int argc, char* argv[]) {
 
 
 // implement the assign_values function
-ASSIGN_RESULT assign_values(SceneViewer& sv, int w, int h, std::string scene_file, std::string camera_name,
-                            std::string device_name, std::string events) {
+ASSIGN_RESULT assign_values(SceneViewer& sv, int w, int h, std::string& scene_file, std::string& camera_name,
+                            std::string& device_name, std::string& events, std::string& culling) {
     if (w != 0 && h != 0) {
         sv.window_width = w;
         sv.window_height = h;
@@ -65,13 +65,16 @@ ASSIGN_RESULT assign_values(SceneViewer& sv, int w, int h, std::string scene_fil
         sv.events = events;
     }
 
+    if (!culling.empty()) {
+        sv.culling = culling;
+    }
+
     return SUCCESS;
 }
 
-// TODO: culling left
 // TODO: there is a bug here: enter name with space, it will not work
 void parse_arguments(int argc, char* argv[], int& w, int& h, std::string& scene_file, std::string& camera_name,
-                    std::string& device_name, std::string& events, bool& list_devices) {
+                    std::string& device_name, std::string& events, bool& list_devices, std::string& culling) {
     if (argc == 1) {
         return;
     }
@@ -100,6 +103,10 @@ void parse_arguments(int argc, char* argv[], int& w, int& h, std::string& scene_
         }
         else if (arg == "--headless") {
             events = argv[i + 1];
+            ++i;
+        }
+        else if (arg == "--culling") {
+            culling = argv[i + 1];
             ++i;
         }
     }

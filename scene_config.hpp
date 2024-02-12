@@ -100,6 +100,7 @@ namespace sconfig {
 
     struct SceneConfig {
         std::unordered_map<std::string, std::shared_ptr<Camera>> cameras;
+        std::unordered_map<int, std::string> id2camera_name;
         std::unordered_map<int, std::shared_ptr<Mesh>> id2mesh;
         std::unordered_map<int, std::shared_ptr<Node>> id2node;
         std::shared_ptr<Scene> scene;
