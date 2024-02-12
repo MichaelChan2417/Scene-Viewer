@@ -108,15 +108,31 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
     UniformBufferObject ubo{};
     ubo.model = cglm::rotate({0.0f, 1.0f, 0.0f}, time * cglm::to_radians(0.0f));
 
-    std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
-    // ubo's view is based on current camera
-    cglm::Vec3f camera_pos = camera->position;
-    cglm::Vec3f view_point = camera->position + camera->dir;
-    ubo.view = cglm::lookAt(camera_pos, view_point, camera->up);
+    // std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
+    // // ubo's view is based on current camera
+    // cglm::Vec3f camera_pos = camera->position;
+    // cglm::Vec3f view_point = camera->position + camera->dir;
+    // ubo.view = cglm::lookAt(camera_pos, view_point, camera->up);
 
-    // ubo's projection is based on current camera
-    ubo.proj = cglm::perspective(camera->vfov, camera->aspect, camera->near, camera->far);
+    // // ubo's projection is based on current camera
+    // ubo.proj = cglm::perspective(camera->vfov, camera->aspect, camera->near, camera->far);
+    // ubo.proj[1][1] *= -1;
+
+    ubo.view = cglm::lookAt(cglm::Vec3f(2.0f, 2.0f, 2.0f), cglm::Vec3f(0.0f, 0.0f, 0.0f), cglm::Vec3f(0.0f, 0.0f, 1.0f));
+    ubo.proj = cglm::perspective(cglm::to_radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
+
+    // generate a diagonal matrix
+    // cglm::Mat44f diag = {
+    //     {1.0f, 0.0f, 0.0f, 0.0f},
+    //     {0.0f, 1.0f, 0.0f, 0.0f},
+    //     {0.0f, 0.0f, 1.0f, 0.0f},
+    //     {0.0f, 0.0f, 0.0f, 1.0f}
+    // };
+    cglm::Mat44f diag = cglm::rotate({0.0f, 1.0f, 0.0f}, cglm::to_radians(45.0f));
+    ubo.instanceModels[0] = diag;
+    cglm::Mat44f trans = cglm::translation(cglm::Vec3f{ -1.0f, 1.0f, -1.0f });
+    ubo.instanceModels[1] = trans;
 
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }

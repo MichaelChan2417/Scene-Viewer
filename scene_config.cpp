@@ -353,6 +353,9 @@ namespace sconfig {
     }
     
     void SceneConfig::load_scene(const std::string& scene_file_name) {
+        if (scene_file_name.empty()) {
+            throw std::runtime_error("Scene File Name is Empty!");
+        }
         mcjp::Result result = mcjp::load(scene_file_name);
         std::vector<mcjp::Object*> objects;
 

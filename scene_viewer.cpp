@@ -31,7 +31,6 @@ void SceneViewer::initVulkan() {
     createCommandBuffers();
     createSyncObjects();
     
-    
     startTime = std::chrono::high_resolution_clock::now();
 }
 
@@ -92,14 +91,16 @@ void SceneViewer::initWindow() {
 }
 
 void SceneViewer::mainLoop() {
+    easyCheckSetup();
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
-        assignCurrentFrame();
+        copyVertexToBuffer();
+
+        // assignCurrentFrame();
 
         drawFrame();
-
-        // std::cout << window_width << " " << window_height << std::endl;
     }
     vkDeviceWaitIdle(device);
 }
@@ -120,62 +121,6 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 }
-
-
-void SceneViewer::mouse_control_callback(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        if (action == GLFW_PRESS) {
-            leftMouseButtonPressed = true;
-            glfwGetCursorPos(window, &lastXPos, &lastYPos);
-        } else if (action == GLFW_RELEASE) {
-            leftMouseButtonPressed = false;
-        }
-    }
-}
-
-void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-    if (leftMouseButtonPressed) {
-        double deltaX = xpos - lastXPos;
-        double deltaY = ypos - lastYPos;
-
-        lastXPos = xpos;
-        lastYPos = ypos;
-
-        if (deltaX == 0 || deltaY == 0) {
-            return;
-        }
-
-        auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
-        // only debug user & debug can be controlled
-        if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
-            return;
-        }
-
-        // std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
-        // // rotate around up axis
-        // cglm::Mat44f rot_up = cglm::rotate(camera->up, static_cast<float>(cglm::to_radians(5.0f) * deltaX));
-        // // need to calculate cross to get rotate2 axis
-        // cglm::Vec3f rot_axis = cglm::cross(camera->dir, camera->up);
-        // cglm::Mat44f rot2 = cglm::rotate(rot_axis, static_cast<float>(cglm::to_radians(5.0f) * deltaY));
-
-        // cglm::Vec3f new_dir = rot_up * camera->dir;
-        // cglm::Vec3f new_up = rot2 * camera->up;
-
-        // std::cout << "New Up: " << new_up[0] << " " << new_up[1] << " " << new_up[2] << std::endl;
-        // std::cout << "New Dir: " << new_dir[0] << " " << new_dir[1] << " " << new_dir[2] << std::endl;
-
-        // //if any value is nan, throw error
-        // if (std::isnan(new_up[0]) || std::isnan(new_up[1]) || std::isnan(new_up[2]) || std::isnan(new_dir[0]) || std::isnan(new_dir[1]) || std::isnan(new_dir[2])) {
-        //     throw std::runtime_error("NAN value detected in new_up or new_dir");
-        // }
-
-        // camera->up = new_up;
-        // camera->dir = new_dir;
-
-        std::cout << "DeltaX: " << deltaX << " DeltaY: " << deltaY << std::endl;
-    }
-}
-
 
 void SceneViewer::loadCheck() {
     // check if we have this camera
@@ -253,7 +198,7 @@ void SceneViewer::assignCurrentFrame() {
         std::cout << "No vertex in current frame" << std::endl;
         return;
     }
-    copyVertexToBuffer();
+    // copyVertexToBuffer();
 }
 
 void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -335,4 +280,84 @@ void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int act
     }
 
     camera->update_planes();
+}
+
+
+
+void SceneViewer::mouse_control_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_PRESS) {
+            leftMouseButtonPressed = true;
+            glfwGetCursorPos(window, &lastXPos, &lastYPos);
+        } else if (action == GLFW_RELEASE) {
+            leftMouseButtonPressed = false;
+        }
+    }
+}
+
+void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+    if (leftMouseButtonPressed) {
+        double deltaX = xpos - lastXPos;
+        double deltaY = ypos - lastYPos;
+
+        lastXPos = xpos;
+        lastYPos = ypos;
+
+        if (deltaX == 0 || deltaY == 0) {
+            return;
+        }
+
+        auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
+        // only debug user & debug can be controlled
+        if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
+            return;
+        }
+
+        // std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
+        // // rotate around up axis
+        // cglm::Mat44f rot_up = cglm::rotate(camera->up, static_cast<float>(cglm::to_radians(5.0f) * deltaX));
+        // // need to calculate cross to get rotate2 axis
+        // cglm::Vec3f rot_axis = cglm::cross(camera->dir, camera->up);
+        // cglm::Mat44f rot2 = cglm::rotate(rot_axis, static_cast<float>(cglm::to_radians(5.0f) * deltaY));
+
+        // cglm::Vec3f new_dir = rot_up * camera->dir;
+        // cglm::Vec3f new_up = rot2 * camera->up;
+
+        // std::cout << "New Up: " << new_up[0] << " " << new_up[1] << " " << new_up[2] << std::endl;
+        // std::cout << "New Dir: " << new_dir[0] << " " << new_dir[1] << " " << new_dir[2] << std::endl;
+
+        // //if any value is nan, throw error
+        // if (std::isnan(new_up[0]) || std::isnan(new_up[1]) || std::isnan(new_up[2]) || std::isnan(new_dir[0]) || std::isnan(new_dir[1]) || std::isnan(new_dir[2])) {
+        //     throw std::runtime_error("NAN value detected in new_up or new_dir");
+        // }
+
+        // camera->up = new_up;
+        // camera->dir = new_dir;
+
+        std::cout << "DeltaX: " << deltaX << " DeltaY: " << deltaY << std::endl;
+    }
+}
+
+
+void SceneViewer::easyCheckSetup() {
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        frame_vertices_static[i].clear();
+        Vertex vertex{};
+        vertex.pos = { 0.0f, 0.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 1.0f, 0.0f, 0.0f };
+        frame_vertices_static[i].push_back(vertex);
+
+        // next point
+        vertex.pos = { 1.0f, 0.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 0.0f, 1.0f, 0.0f };
+        frame_vertices_static[i].push_back(vertex);
+
+        // next point
+        vertex.pos = { 0.0f, 1.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 0.0f, 0.0f, 1.0f };
+        frame_vertices_static[i].push_back(vertex);
+    }
 }

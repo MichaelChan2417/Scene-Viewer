@@ -21,12 +21,12 @@
 
 #include "scene_config.hpp"
 
+const int MAX_INSTANCE = 128;
+
 struct Vertex {
     cglm::Vec3f pos;
     cglm::Vec3f normal;
     cglm::Vec3f color;
-    // glm::vec2 pos;
-    // glm::vec3 color;
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{
@@ -37,8 +37,8 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
         attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -46,18 +46,21 @@ struct Vertex {
         attributeDescriptions[1].binding = 0;
         attributeDescriptions[1].location = 1;
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
+        attributeDescriptions[1].offset = offsetof(Vertex, normal);
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, color);
+
         return attributeDescriptions;
     }
 };
 
 struct UniformBufferObject {
-    // glm::mat4 model;
-    // glm::mat4 view;
-    // glm::mat4 proj;
     cglm::Mat44f model;
     cglm::Mat44f view;
     cglm::Mat44f proj;
+    cglm::Mat44f instanceModels[MAX_INSTANCE];
 };
 
 extern std::vector<std::vector<Vertex>> frame_vertices_static;
@@ -124,15 +127,15 @@ class SceneViewer {
 public:
     int window_width = 800, window_height = 600;        // default value of 800 x 600
     sconfig::SceneConfig scene_config;
-    std::string scene_file;
+    std::string scene_file = "";
     std::string camera_name = "debug";
     std::string culling = "none";
     std::string events;
     std::optional < std::string > device_name = std::nullopt;
 
     void run() {
-        scene_config.load_scene(scene_file);
-        loadCheck();
+        // scene_config.load_scene(scene_file);
+        // loadCheck();
         // useless_prepare_vertices();
         initWindow();
         initVulkan();
@@ -202,6 +205,7 @@ public:
     static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     // =================== inner functions ===================
+    void easyCheckSetup();
 
     void createInstance();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);

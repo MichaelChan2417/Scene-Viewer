@@ -21,7 +21,8 @@
 // }
 
 void SceneViewer::createVertexBuffer() {
-    VkDeviceSize bufferSize = sizeof(Vertex) * scene_config.get_total_vertex_count();
+    // VkDeviceSize bufferSize = sizeof(Vertex) * scene_config.get_total_vertex_count();
+    VkDeviceSize bufferSize = sizeof(Vertex) * 50; // TODO: need fix
     createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBuffer, vertexBufferMemory);
     // copyVertexToBuffer();
 }
@@ -33,7 +34,6 @@ void SceneViewer::copyVertexToBuffer() {
     vkMapMemory(device, vertexBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, frame_vertices_static[currentFrame].data(), static_cast<size_t>(bufferSize));
     vkUnmapMemory(device, vertexBufferMemory);
-    
 }
 
 

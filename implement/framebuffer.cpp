@@ -95,7 +95,6 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     scissor.offset = {0, 0};
     scissor.extent = swapChainExtent;
 
-    // std::cout << "Extent Size is " << swapChainExtent.width << " " << swapChainExtent.height << std::endl;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     VkBuffer vertexBuffers[] = {vertexBuffer};
@@ -107,9 +106,9 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     // this is actually drawing
     vkCmdDraw(commandBuffer,
         static_cast<uint32_t>(frame_vertices_static[currentFrame].size()),      /* Vertex Count */
-        1,      /* Instance Count */
+        2,      /* Instance Count */
         0,      /* First Vertex, defines lowest value of gl_VertexIndex */
-        0
+        0       /* First Instance Index, defines lowest of gl_InstanceIndex */
     );
 
     // if with index buffer
