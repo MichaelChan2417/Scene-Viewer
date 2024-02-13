@@ -104,12 +104,13 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
     
     // this is actually drawing
-    vkCmdDraw(commandBuffer,
-        static_cast<uint32_t>(frame_vertices_static[currentFrame].size()),      /* Vertex Count */
-        2,      /* Instance Count */
-        0,      /* First Vertex, defines lowest value of gl_VertexIndex */
-        0       /* First Instance Index, defines lowest of gl_InstanceIndex */
-    );
+    // vkCmdDraw(commandBuffer,
+    //     static_cast<uint32_t>(frame_vertices_static[currentFrame].size() / 2),      /* Vertex Count */
+    //     2,      /* Instance Count */
+    //     3,      /* First Vertex, defines lowest value of gl_VertexIndex */
+    //     0       /* First Instance Index, defines lowest of gl_InstanceIndex */
+    // );
+    frameRealDraw(commandBuffer);
 
     // if with index buffer
     // vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
@@ -215,4 +216,38 @@ void SceneViewer::drawFrame() {
 void SceneViewer::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
     auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
+}
+
+void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer) {
+    // for each vertex, got all instance copy in this frame
+    std::vector<std::vector<cglm::Mat44f>> curFrameInstances = frame_instances[currentFrame];  // vector is mesh based
+    int curVertexIndex = 0;
+    int curInstanceIndex = 0;
+    
+    // this is also the number of vertices
+    for (size_t i = 0; i < curFrameInstances.size(); i++) {
+        // for each mesh, draw the instance vertexs
+        int meshId = scene_config.innerId2meshId[i];
+        int vertexCount = scene_config.id2mesh[meshId]->vertex_count;
+        int nextVertexIndex = curVertexIndex + vertexCount;
+
+        int numInstances = curFrameInstances[i].size();
+        if (numInstances == 0) {
+            curVertexIndex = nextVertexIndex;
+            continue;
+        }
+
+        vkCmdDraw(commandBuffer,
+            static_cast<uint32_t>(vertexCount),      /* Vertex Count */
+            numInstances,           /* Instance Count */
+            curVertexIndex,         /* First Vertex, defines lowest value of gl_VertexIndex */
+            curInstanceIndex        /* First Instance Index, defines lowest of gl_InstanceIndex */
+        );
+
+        // std::cout << "Draw mesh: " << scene_config.id2mesh[meshId]->name << " with " << numInstances << " instances";
+        // std::cout << " from vertex " << curVertexIndex << " to " << nextVertexIndex << std::endl;
+
+        curVertexIndex = nextVertexIndex;
+        curInstanceIndex += numInstances;
+    }
 }

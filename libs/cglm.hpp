@@ -554,8 +554,24 @@ namespace cglm {
         return a * (1 - t) + b * t;
     }
 
+
     using Mat44f = Mat44<float>;
     using Mat44d = Mat44<double>;
 
-    
+    template <typename T> Mat44<T> identity(T s) {
+        return Mat44<T>(
+            { s, 0.0f, 0.0f, 0.0f },
+            { 0.0f, s, 0.0f, 0.0f },
+            { 0.0f, 0.0f, s, 0.0f },
+            { 0.0f, 0.0f, 0.0f, s }
+        );
+    }
+
+    template <typename T> void printMatrix(const Mat44<T>& m) {
+        std::cout << m.x << std::endl;
+        std::cout << m.y << std::endl;
+        std::cout << m.z << std::endl;
+        std::cout << m.w << std::endl;
+    }
+
 } // namespace cglm

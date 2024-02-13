@@ -63,16 +63,8 @@ struct UniformBufferObject {
     cglm::Mat44f instanceModels[MAX_INSTANCE];
 };
 
+extern std::vector<Vertex> static_vertices;
 extern std::vector<std::vector<Vertex>> frame_vertices_static;
-// = {
-    // {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-    // {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-    // {{-0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-
-    // {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    // {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-    // {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}}
-// };
 
 extern std::vector<Vertex> indexed_vertices;
 
@@ -134,9 +126,8 @@ public:
     std::optional < std::string > device_name = std::nullopt;
 
     void run() {
-        // scene_config.load_scene(scene_file);
-        // loadCheck();
-        // useless_prepare_vertices();
+        scene_config.load_scene(scene_file);
+        loadCheck();
         initWindow();
         initVulkan();
         mainLoop();
@@ -192,12 +183,14 @@ public:
     static bool leftMouseButtonPressed;
     static double lastXPos, lastYPos;
 
+    std::vector<std::vector<std::vector<cglm::Mat44f>>> frame_instances;
+    std::vector<std::vector<cglm::Mat44f>> frame_uniform_buffers;  // index is instance_id, value is model matrix
+
     // interfaces
     void initWindow();
     void initVulkan();
     void mainLoop();
     void cleanup();
-    void assignCurrentFrame();
     void loadCheck();
 
     static void mouse_control_callback(GLFWwindow* window, int button, int action, int mods);
@@ -206,6 +199,8 @@ public:
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     // =================== inner functions ===================
     void easyCheckSetup();
+    void setup_frame_instances();
+    void dfs_instance(int node_id, int currentFrame, cglm::Mat44f parent_transform);
 
     void createInstance();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -229,6 +224,7 @@ public:
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     void copyVertexToBuffer();
+    void copyAllMeshVertexToBuffer();
 
     // framebuffer
     void createFramebuffers();
@@ -237,6 +233,7 @@ public:
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void drawFrame();
     void createSyncObjects();
+    void frameRealDraw(VkCommandBuffer commandBuffer);
 
     // graphics pipeline
     void createGraphicsPipeline();

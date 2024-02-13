@@ -1,6 +1,7 @@
 #include "scene_viewer.hpp"
 
 std::vector<std::vector<Vertex>> frame_vertices_static(MAX_FRAMES_IN_FLIGHT);
+std::vector<Vertex> static_vertices;
 std::vector<Vertex> indexed_vertices;
 
 bool SceneViewer::leftMouseButtonPressed = false;
@@ -91,14 +92,14 @@ void SceneViewer::initWindow() {
 }
 
 void SceneViewer::mainLoop() {
-    easyCheckSetup();
+    // easyCheckSetup();
+
+    copyAllMeshVertexToBuffer();
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
-        copyVertexToBuffer();
-
-        // assignCurrentFrame();
+        setup_frame_instances();
 
         drawFrame();
     }
@@ -123,82 +124,22 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
 }
 
 void SceneViewer::loadCheck() {
+    // initialize frame instances
+    // initialize frame_uniform_buffers
+    frame_instances.resize(MAX_FRAMES_IN_FLIGHT);
+    frame_uniform_buffers.resize(MAX_FRAMES_IN_FLIGHT);
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        // each frame basis is on each mesh, then insert instance
+        frame_instances[i].resize(scene_config.id2mesh.size());
+    }
+
+    std::cout << "In loadCheck(), we have " << scene_config.id2instance.size() << " instances" << std::endl;
+
     // check if we have this camera
     if (scene_config.cameras.find(scene_config.cur_camera) == scene_config.cameras.end()) {
         throw std::runtime_error("Camera " + scene_config.cur_camera + " not found in scene file");
     }
     scene_config.cur_camera = camera_name;
-}
-
-// based on current scene/camera, assign the current frame with correct vertex data
-void SceneViewer::assignCurrentFrame() {
-    std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
-    frame_vertices_static[currentFrame].clear();
-    std::cout << "Current Camera: " << scene_config.cur_camera << " Culling " << culling << std::endl;
-    std::vector<std::shared_ptr<sconfig::Plane>> bound_spheres = camera->bounds;
-    std::cout << camera->position << " With Direction: " << camera->dir << std::endl;
-
-    // I should use the scene
-    std::shared_ptr<sconfig::Scene> scene = scene_config.scene;
-    for (auto& child_node : scene->children) {
-        std::shared_ptr<sconfig::Node> node = scene_config.id2node[child_node];
-
-        // case - 1: no culling, draw everything
-        if (culling == "none") {
-            for (int i = 0; i < node->vertex_count; i++) {
-                cglm::Vec3f norm = normalize(node->normals[i]);
-                Vertex vertex{};
-                vertex.pos = node->positions[i];
-                vertex.color = node->colors[i];
-                frame_vertices_static[currentFrame].push_back(vertex);
-            }
-            continue;
-        }
-
-        // case - 2: so we only have frustum culling
-        std::vector<std::shared_ptr<sconfig::Bound_Sphere>> bs_instances = node->bound_spheres;
-        for (auto& bs : bs_instances) {
-            cglm::Vec3f center = bs->center;
-            float radius = bs->radius;
-
-            // std::cout << "Center: " << center << " Radius: " << radius << std::endl;
-            bool in_view = true;
-            // test each boundary
-            int i = 0;
-            for (auto& plane : bound_spheres) {
-                cglm::Vec3f normal = plane->normal;
-                cglm::Vec3f on_plane_point = plane->normal * plane->d;
-                float d2 = cglm::dot(normal, center - on_plane_point);
-                if (d2 + radius <= 0) {
-                    in_view = false;
-                    break;
-                }
-                ++i;
-            }
-
-            if (!in_view) {
-                continue;
-            }
-
-            // then this instance is in view
-            for (int i = bs->startIdx; i < bs->endIdx; i++) {
-                cglm::Vec3f norm = normalize(node->normals[i]);
-                Vertex vertex{};
-                vertex.pos = node->positions[i];
-                vertex.color = node->colors[i];
-                frame_vertices_static[currentFrame].push_back(vertex);
-            }
-        }
-
-    }
-
-    std::cout << "Static Vertices: " << frame_vertices_static[currentFrame].size() << std::endl;
-
-    if (frame_vertices_static[currentFrame].size() == 0) {
-        std::cout << "No vertex in current frame" << std::endl;
-        return;
-    }
-    // copyVertexToBuffer();
 }
 
 void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -282,8 +223,6 @@ void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int act
     camera->update_planes();
 }
 
-
-
 void SceneViewer::mouse_control_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS) {
@@ -338,6 +277,68 @@ void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, doub
     }
 }
 
+void SceneViewer::setup_frame_instances() {
+    // start from root, make each dfs, using currentFrame
+    for (int i = 0; i < scene_config.id2mesh.size(); i++) {
+        frame_instances[currentFrame][i].clear();
+    }
+
+    cglm::Mat44f identity_m = cglm::identity(1.0f);
+    for (auto node_id : scene_config.scene->children) {
+        dfs_instance(node_id, currentFrame, identity_m);
+    }
+
+    for (int i=0; i<frame_instances[currentFrame].size(); i++) {
+        auto& ms = frame_instances[currentFrame][i];
+    }
+}
+
+void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f parent_transform) {
+    std::shared_ptr<sconfig::Node> node = scene_config.id2node[node_id];
+    cglm::Mat44f curTransform = parent_transform * node->transform;
+    // dfs on children
+    for (auto child_id : node->children) {
+        dfs_instance(child_id, currentFrame, curTransform);
+    }
+
+    // then for all meshes
+    for (auto mesh_id : node->mesh) {
+        // before push, we need test if we can see it
+        std::shared_ptr<sconfig::Bound_Sphere> bound_sphere = scene_config.id2mesh[mesh_id]->bound_sphere;
+        // get new center and use scale to simulate new radius
+        cglm::Vec4f sub_new_center = curTransform * cglm::Vec4f(bound_sphere->center, 1.0f);
+        cglm::Vec3f new_center = { sub_new_center[0] / sub_new_center[3], sub_new_center[1] / sub_new_center[3], sub_new_center[2] / sub_new_center[3] };
+        float scale_x = abs(curTransform(0, 0)), scale_y = abs(curTransform(1, 1)), scale_z = abs(curTransform(2, 2));
+        float new_radius = bound_sphere->radius * std::max(scale_x, std::max(scale_y, scale_z));
+        
+        // check with boundaries
+        std::vector<std::shared_ptr<sconfig::Plane>> planes = scene_config.cameras[scene_config.cur_camera]->bounds;
+        bool visible = true;
+        int ii = 0;
+        for (auto& plane : planes) {
+            float distance = cglm::dot(plane->normal, new_center) - plane->d;
+            if (distance + new_radius < 0.0f) {
+                visible = false;
+                std::cout << node->name << "\'s " << scene_config.id2mesh[mesh_id]->name << " is not visible on " << ii << std::endl;
+                std::cout << "Old Center: " << bound_sphere->center << " Old Radius: " << bound_sphere->radius << " Scale: " << scale_x << " " << scale_y << " " << scale_z << std::endl;
+                std::cout << "New Center: " << new_center << " New Radius: " << new_radius << std::endl;
+
+                std::cout << "Camera pos: " << scene_config.cameras[scene_config.cur_camera]->position;
+                std::cout << " Camera dir: " << scene_config.cameras[scene_config.cur_camera]->dir;
+                std::cout << " Camera up: " << scene_config.cameras[scene_config.cur_camera]->up << std::endl;
+                std::cout << "Plane Normal: " << plane->normal << " Plane D: " << plane->d << std::endl;
+                break;
+            }
+            ++ii;
+        }
+
+        if (!visible) {
+            continue;
+        }
+
+        frame_instances[currentFrame][scene_config.id2mesh[mesh_id]->inner_id].push_back(curTransform);
+    }
+}
 
 void SceneViewer::easyCheckSetup() {
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -359,5 +360,25 @@ void SceneViewer::easyCheckSetup() {
         vertex.normal = { 0.0f, 0.0f, 1.0f };
         vertex.color = { 0.0f, 0.0f, 1.0f };
         frame_vertices_static[i].push_back(vertex);
+
+        
+        // next point
+        vertex.pos = { 0.0f, 1.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 0.0f, 0.0f, 1.0f };
+        frame_vertices_static[i].push_back(vertex);
+
+        // next point
+        vertex.pos = { 1.0f, 0.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 0.0f, 1.0f, 0.0f };
+        frame_vertices_static[i].push_back(vertex);
+
+        // next point
+        vertex.pos = { 1.0f, 1.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 1.0f, 1.0f, 1.0f };
+        frame_vertices_static[i].push_back(vertex);
     }
 }
+

@@ -29,14 +29,25 @@ namespace sconfig {
         float d;
     };
 
+    struct Bound_Sphere {
+        cglm::Vec3f center;
+        float radius;
+    };
+
+    struct Instance {
+        // self unique id
+        int id;         // this is unique over all instances
+        // reference to the mesh
+        int mesh_id;
+        cglm::Mat44f transform;
+    };
+
     struct Camera {
         std::string name;
         float aspect;
         float vfov;
         float near;
         float far;
-
-        float boundary_view;
 
         cglm::Vec3f position = { 0.0f, 0.0f, 0.0f };
         cglm::Vec3f dir = { 0.0f, 0.0f, -1.0f };
@@ -51,6 +62,7 @@ namespace sconfig {
 
     struct Mesh {
         int id;
+        int inner_id;
         std::string name;
         std::string topology;
 
@@ -65,32 +77,22 @@ namespace sconfig {
         std::vector<cglm::Vec3f> colors;
         std::string color_format;
 
-        // create a bounding shpere
-        // cglm::Vec3f center = { 0.0f, 0.0f, 0.0f };
-        // float radius = 0.0f;
-    };
-
-    struct Bound_Sphere {
-        cglm::Vec3f center;
-        float radius;
-        size_t startIdx, endIdx; // [,)
+        std::shared_ptr<Bound_Sphere> bound_sphere;
     };
 
     struct Node {
         int id;
-        size_t vertex_count;
         std::string name;
-        cglm::Mat44f transform;
+        cglm::Mat44f transform;             // this is for current node transformation
+        cglm::Mat44f animation_transform;   // this is for animation transformation
         std::vector<int> children;
+        std::vector<int> parents;
         std::vector<int> mesh;
 
-        std::vector<cglm::Vec3f> positions;
-        std::vector<cglm::Vec3f> normals;
-        std::vector<cglm::Vec3f> colors;
-
-        std::vector<std::shared_ptr<Bound_Sphere>> bound_spheres;
-
         int camera;
+        int vertex_count;
+
+        std::vector<std::shared_ptr<Instance>> instances;
     };
 
     struct Scene {
@@ -102,19 +104,23 @@ namespace sconfig {
         std::unordered_map<std::string, std::shared_ptr<Camera>> cameras;
         std::unordered_map<int, std::string> id2camera_name;
         std::unordered_map<int, std::shared_ptr<Mesh>> id2mesh;
+        std::unordered_map<int, int> innerId2meshId;
+        std::unordered_map<int, std::shared_ptr<Instance>> id2instance;
         std::unordered_map<int, std::shared_ptr<Node>> id2node;
         std::shared_ptr<Scene> scene;
 
         std::string cur_camera;
-        int cur_node;
+        int cur_instance;
+        int cur_mesh;
 
         void load_scene(const std::string& scene_file_name);
         size_t get_total_vertex_count();
+        size_t get_mesh_vertex_count();
 
         // parser
         std::shared_ptr<Camera> generateCamera(const mcjp::Object* obj);
         std::shared_ptr<Mesh> generateMesh(const mcjp::Object* obj);
-        std::shared_ptr<Node> generateNode(const mcjp::Object* obj);
+        std::shared_ptr<Node> generateNode(const mcjp::Object* obj, size_t node_id);
         std::shared_ptr<Scene> generateScene(const mcjp::Object* obj);
     };
 
