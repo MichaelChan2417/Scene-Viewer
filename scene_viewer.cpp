@@ -32,7 +32,6 @@ void SceneViewer::initVulkan() {
     createCommandBuffers();
     createSyncObjects();
     
-    startTime = std::chrono::high_resolution_clock::now();
 }
 
 void SceneViewer::cleanup() {
@@ -95,7 +94,8 @@ void SceneViewer::mainLoop() {
     // easyCheckSetup();
 
     copyAllMeshVertexToBuffer();
-
+    
+    startTime = std::chrono::high_resolution_clock::now();
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -143,11 +143,12 @@ void SceneViewer::loadCheck() {
 }
 
 void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    // w:87 a:65 s:83 d:68 up:265 down:264 left:263 right:262 u:85 n:78
+    // w:87 a:65 s:83 d:68 up:265 down:264 left:263 right:262 u:85 n:78 space:32
     std::unordered_map<int, bool> key_map;
     if (action == GLFW_PRESS) {
         key_map[key] = true;
-    } else if (action == GLFW_RELEASE) {
+    }
+    else if (action == GLFW_RELEASE) {
         key_map[key] = false;
     }
 
@@ -220,6 +221,11 @@ void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int act
         camera->position = new_pos;
     }
 
+    if (key_map[32]) {
+        // space, control animation
+        app->animationPlay = !app->animationPlay;
+    }
+
     camera->update_planes();
 }
 
@@ -284,18 +290,39 @@ void SceneViewer::setup_frame_instances() {
     }
 
     cglm::Mat44f identity_m = cglm::identity(1.0f);
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    double dtime = std::chrono::duration<double, std::chrono::seconds::period>(currentTime - startTime).count();   
+    // for each driver, assign current animation_transform matrix
+    if (animationPlay) {
+        for (auto& [name, driver] : scene_config.name2driver) {
+            cglm::Mat44f animation_transform = driver->getCurrentTransform(dtime);
+            scene_config.id2node[driver->node]->animation_transform = animation_transform;
+        }
+    }
+    
     for (auto node_id : scene_config.scene->children) {
         dfs_instance(node_id, currentFrame, identity_m);
     }
 
-    for (int i=0; i<frame_instances[currentFrame].size(); i++) {
-        auto& ms = frame_instances[currentFrame][i];
-    }
+    // for (int i=0; i<frame_instances[currentFrame].size(); i++) {
+    //     auto& ms = frame_instances[currentFrame][i];
+    //     for (auto& s : ms) {
+    //         cglm::printMatrix(s);
+    //     }
+    // }
 }
 
 void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f parent_transform) {
     std::shared_ptr<sconfig::Node> node = scene_config.id2node[node_id];
-    cglm::Mat44f curTransform = parent_transform * node->transform;
+    cglm::Mat44f curTransform;
+    if (animationPlay) {
+        curTransform = parent_transform * node->transform * node->animation_transform;
+    }
+    else {
+        curTransform = parent_transform * node->transform;
+    }
+
     // dfs on children
     for (auto child_id : node->children) {
         dfs_instance(child_id, currentFrame, curTransform);
@@ -319,14 +346,14 @@ void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f paren
             float distance = cglm::dot(plane->normal, new_center) - plane->d;
             if (distance + new_radius < 0.0f) {
                 visible = false;
-                std::cout << node->name << "\'s " << scene_config.id2mesh[mesh_id]->name << " is not visible on " << ii << std::endl;
-                std::cout << "Old Center: " << bound_sphere->center << " Old Radius: " << bound_sphere->radius << " Scale: " << scale_x << " " << scale_y << " " << scale_z << std::endl;
-                std::cout << "New Center: " << new_center << " New Radius: " << new_radius << std::endl;
+                // std::cout << node->name << "\'s " << scene_config.id2mesh[mesh_id]->name << " is not visible on " << ii << std::endl;
+                // std::cout << "Old Center: " << bound_sphere->center << " Old Radius: " << bound_sphere->radius << " Scale: " << scale_x << " " << scale_y << " " << scale_z << std::endl;
+                // std::cout << "New Center: " << new_center << " New Radius: " << new_radius << std::endl;
 
-                std::cout << "Camera pos: " << scene_config.cameras[scene_config.cur_camera]->position;
-                std::cout << " Camera dir: " << scene_config.cameras[scene_config.cur_camera]->dir;
-                std::cout << " Camera up: " << scene_config.cameras[scene_config.cur_camera]->up << std::endl;
-                std::cout << "Plane Normal: " << plane->normal << " Plane D: " << plane->d << std::endl;
+                // std::cout << "Camera pos: " << scene_config.cameras[scene_config.cur_camera]->position;
+                // std::cout << " Camera dir: " << scene_config.cameras[scene_config.cur_camera]->dir;
+                // std::cout << " Camera up: " << scene_config.cameras[scene_config.cur_camera]->up << std::endl;
+                // std::cout << "Plane Normal: " << plane->normal << " Plane D: " << plane->d << std::endl;
                 break;
             }
             ++ii;

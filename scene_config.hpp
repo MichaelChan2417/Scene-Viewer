@@ -95,6 +95,17 @@ namespace sconfig {
         std::vector<std::shared_ptr<Instance>> instances;
     };
 
+    struct Driver {
+        std::string name;
+        int node;   // reference to the node
+        std::string channel;   // channel could be "translation" or "rotation" or "scale"
+        std::vector<double> times;
+        std::vector<double> values;
+        std::string interpolation;  // interpolation could be "STEP" or "LINEAR" or "SLERP"
+
+        cglm::Mat44f getCurrentTransform(double time);
+    };
+
     struct Scene {
         std::string name;
         std::vector<int> children;
@@ -107,6 +118,7 @@ namespace sconfig {
         std::unordered_map<int, int> innerId2meshId;
         std::unordered_map<int, std::shared_ptr<Instance>> id2instance;
         std::unordered_map<int, std::shared_ptr<Node>> id2node;
+        std::unordered_map<std::string, std::shared_ptr<Driver>> name2driver;
         std::shared_ptr<Scene> scene;
 
         std::string cur_camera;
@@ -122,6 +134,7 @@ namespace sconfig {
         std::shared_ptr<Mesh> generateMesh(const mcjp::Object* obj);
         std::shared_ptr<Node> generateNode(const mcjp::Object* obj, size_t node_id);
         std::shared_ptr<Scene> generateScene(const mcjp::Object* obj);
+        std::shared_ptr<Driver> generateDriver(const mcjp::Object* obj);
     };
 
 

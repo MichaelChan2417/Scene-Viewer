@@ -168,7 +168,7 @@ void SceneViewer::drawFrame() {
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
-    
+
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
     // submit command buffer to graphics queue
@@ -223,7 +223,7 @@ void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer) {
     std::vector<std::vector<cglm::Mat44f>> curFrameInstances = frame_instances[currentFrame];  // vector is mesh based
     int curVertexIndex = 0;
     int curInstanceIndex = 0;
-    
+
     // this is also the number of vertices
     for (size_t i = 0; i < curFrameInstances.size(); i++) {
         // for each mesh, draw the instance vertexs

@@ -182,6 +182,7 @@ public:
 
     static bool leftMouseButtonPressed;
     static double lastXPos, lastYPos;
+    bool animationPlay = false;
 
     std::vector<std::vector<std::vector<cglm::Mat44f>>> frame_instances;
     std::vector<std::vector<cglm::Mat44f>> frame_uniform_buffers;  // index is instance_id, value is model matrix

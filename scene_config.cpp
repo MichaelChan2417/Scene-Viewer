@@ -220,6 +220,7 @@ namespace sconfig {
 
         // then the rest are all cases to instances
         node->transform = translate_m * rotation_m * scale_m;
+        node->animation_transform = cglm::identity(1.0f);
 
         // inherit information will not change, we create instances here
         // all children's instances are directly my instances
@@ -253,7 +254,100 @@ namespace sconfig {
 
         return scene;
     }
-    
+
+    std::shared_ptr<Driver> SceneConfig::generateDriver(const mcjp::Object* obj) {
+        std::shared_ptr<Driver> driver = std::make_shared<Driver>();
+        driver->name = std::get<std::string>(obj->contents.at("name"));
+        driver->node = static_cast<int>(std::get<double>(obj->contents.at("node")));
+        driver->channel = std::get<std::string>(obj->contents.at("channel"));
+        driver->times = std::get<std::vector<double>>(obj->contents.at("times"));
+        driver->values = std::get<std::vector<double>>(obj->contents.at("values"));
+        driver->interpolation = std::get<std::string>(obj->contents.at("interpolation"));
+
+        return driver;
+    }
+
+    cglm::Mat44f Driver::getCurrentTransform(double dtime) {
+        double rtime = fmod(dtime, times.back());
+        auto it = std::lower_bound(times.begin(), times.end(), rtime);
+        int idx = std::distance(times.begin(), it);
+        // very occasional case, we need to handle it, just land on the first key frame
+        if (idx == 0) {
+            if (channel == "rotation") {
+                cglm::Vec4f vr = cglm::Vec4f{ static_cast<float>(values[idx*4]), static_cast<float>(values[idx*4+1]), static_cast<float>(values[idx*4+2]), static_cast<float>(values[idx*4+3]) };
+                return cglm::rotation(vr);
+            }
+            if (channel == "translation") {
+                cglm::Vec3f vt = cglm::Vec3f{ static_cast<float>(values[idx*3]), static_cast<float>(values[idx*3+1]), static_cast<float>(values[idx*3+2]) };
+                return cglm::translation(vt);
+            }
+            if (channel == "scale") {
+                cglm::Vec3f vs = cglm::Vec3f{ static_cast<float>(values[idx*3]), static_cast<float>(values[idx*3+1]), static_cast<float>(values[idx*3+2]) };
+                return cglm::scale(vs);
+            }
+        }
+
+        --idx;
+        if (interpolation == "STEP") {
+            if (channel == "rotation") {
+                cglm::Vec4f vr = cglm::Vec4f{ static_cast<float>(values[idx*4]), static_cast<float>(values[idx*4+1]), static_cast<float>(values[idx*4+2]), static_cast<float>(values[idx*4+3]) };
+                return cglm::rotation(vr);
+            }
+            if (channel == "translation") {
+                cglm::Vec3f vt = cglm::Vec3f{ static_cast<float>(values[idx*3]), static_cast<float>(values[idx*3+1]), static_cast<float>(values[idx*3+2]) };
+                return cglm::translation(vt);
+            }
+            if (channel == "scale") {
+                cglm::Vec3f vs = cglm::Vec3f{ static_cast<float>(values[idx*3]), static_cast<float>(values[idx*3+1]), static_cast<float>(values[idx*3+2]) };
+                return cglm::scale(vs);
+            }
+        }
+        else if (interpolation == "LINEAR") {
+            double d1 = rtime - times[idx], d2 = times[idx + 1] - rtime;
+            float p1 = static_cast<float> (d1 / (d1+d2)), p2 = static_cast<float> (d2 / (d1+d2));
+            if (channel == "rotation") {
+                cglm::Vec4f vr1 = cglm::Vec4f{ static_cast<float>(values[idx*4]), static_cast<float>(values[idx*4+1]), static_cast<float>(values[idx*4+2]), static_cast<float>(values[idx*4+3]) };
+                cglm::Vec4f vr2 = cglm::Vec4f{ static_cast<float>(values[(idx+1)*4]), static_cast<float>(values[(idx+1)*4+1]), static_cast<float>(values[(idx+1)*4+2]), static_cast<float>(values[(idx+1)*4+3]) };
+                return cglm::rotation(vr1 * p2 + vr2 * p1);
+            }
+            if (channel == "translation") {
+                cglm::Vec3f vt1 = cglm::Vec3f{ static_cast<float>(values[idx*3]), static_cast<float>(values[idx*3+1]), static_cast<float>(values[idx*3+2]) };
+                cglm::Vec3f vt2 = cglm::Vec3f{ static_cast<float>(values[(idx+1)*3]), static_cast<float>(values[(idx+1)*3+1]), static_cast<float>(values[(idx+1)*3+2]) };
+                return cglm::translation(vt1 * p2 + vt2 * p1);
+            }
+            if (channel == "scale") {
+                cglm::Vec3f vs1 = cglm::Vec3f{ static_cast<float>(values[idx*3]), static_cast<float>(values[idx*3+1]), static_cast<float>(values[idx*3+2]) };
+                cglm::Vec3f vs2 = cglm::Vec3f{ static_cast<float>(values[(idx+1)*3]), static_cast<float>(values[(idx+1)*3+1]), static_cast<float>(values[(idx+1)*3+2]) };
+                return cglm::scale(vs1 * p2 + vs2 * p1);
+            }
+        }
+        else {
+            // case for SLERP
+            double d1 = rtime - times[idx], d2 = times[idx + 1] - rtime;
+            float t = static_cast<float> (d1 / (d1 + d2));
+            if (channel == "rotation") {
+                cglm::Vec4f vr1 = cglm::Vec4f{ static_cast<float>(values[idx*4]), static_cast<float>(values[idx*4+1]), static_cast<float>(values[idx*4+2]), static_cast<float>(values[idx*4+3]) };
+                cglm::Vec4f vr2 = cglm::Vec4f{ static_cast<float>(values[(idx+1)*4]), static_cast<float>(values[(idx+1)*4+1]), static_cast<float>(values[(idx+1)*4+2]), static_cast<float>(values[(idx+1)*4+3]) };
+                return cglm::rotation(cglm::slerp(vr1, vr2, t));
+            }
+            if (channel == "translation") {
+                cglm::Vec3f vt1 = cglm::Vec3f{ static_cast<float>(values[idx*3]), static_cast<float>(values[idx*3+1]), static_cast<float>(values[idx*3+2]) };
+                cglm::Vec3f vt2 = cglm::Vec3f{ static_cast<float>(values[(idx+1)*3]), static_cast<float>(values[(idx+1)*3+1]), static_cast<float>(values[(idx+1)*3+2]) };
+                std::cout << "Do you really want SLERP for translation?" << std::endl;
+                return cglm::translation(vt1 * (1 - t) + vt2 * t);
+            }
+            if (channel == "scale") {
+                cglm::Vec3f vs1 = cglm::Vec3f{ static_cast<float>(values[idx*3]), static_cast<float>(values[idx*3+1]), static_cast<float>(values[idx*3+2]) };
+                cglm::Vec3f vs2 = cglm::Vec3f{ static_cast<float>(values[(idx+1)*3]), static_cast<float>(values[(idx+1)*3+1]), static_cast<float>(values[(idx+1)*3+2]) };
+                std::cout << "Do you really want SLERP for scale?" << std::endl;
+                return cglm::scale(vs1 * (1 - t) + vs2 * t);
+            }
+        }
+
+        std::cout << "Unknown Channel Type!" << std::endl;
+        return cglm::identity(1.0f);
+    }
+
     void SceneConfig::load_scene(const std::string& scene_file_name) {
         if (scene_file_name.empty()) {
             throw std::runtime_error("Scene File Name is Empty!");
@@ -296,6 +390,10 @@ namespace sconfig {
             }
             else if (type == "scene" || type == "SCENE") {
                 scene = generateScene(obj);
+            }
+            else if (type == "driver" || type == "DRIVER") {
+                std::shared_ptr<Driver> driverPtr = generateDriver(obj);
+                name2driver[driverPtr->name] = driverPtr;
             }
 
             if (cameras["debug"] == nullptr) {

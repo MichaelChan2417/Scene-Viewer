@@ -244,6 +244,12 @@ namespace cglm {
         return os;
     }
 
+    template <size_t N, typename T> Vec<N, T> slerp(const Vec<N, T>& a, const Vec<N, T>& b, T t) {
+        T theta = std::acos(dot(a, b));
+        return (a * std::sin((1 - t) * theta) + b * std::sin(t * theta)) / std::sin(theta);
+    }
+
+    
     // =================================================================================================
     //                                       2D, 3D, 4D vector types
     // =================================================================================================
