@@ -50,7 +50,7 @@ main.o: main.cpp scene_viewer.hpp
 mcjp.o: libs\mcjp.cpp libs\mcjp.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-headless.o: headless.cpp scene_viewer.hpp
+headless.o: headless.cpp scene_viewer.hpp headless.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 scene_config.o: scene_config.cpp scene_config.hpp libs\cglm.hpp libs\mcjp.hpp
