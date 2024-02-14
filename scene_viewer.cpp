@@ -14,8 +14,10 @@ void SceneViewer::initVulkan() {
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
+
     createSwapChain();
     createImageViews();
+
     createRenderPass();
     createDescriptorSetLayout();
     createGraphicsPipeline();
@@ -296,8 +298,17 @@ void SceneViewer::setup_frame_instances() {
     // for each driver, assign current animation_transform matrix
     if (animationPlay) {
         for (auto& [name, driver] : scene_config.name2driver) {
+            if (!driver->useful) {
+                std::cout << name << " is not useful, skip" << std::endl;
+                continue;
+            }
             cglm::Mat44f animation_transform = driver->getCurrentTransform(dtime);
-            scene_config.id2node[driver->node]->animation_transform = animation_transform;
+            if (driver->channel == "translation")
+                scene_config.id2node[driver->node]->translation = animation_transform;
+            else if (driver->channel == "rotation")
+                scene_config.id2node[driver->node]->rotation = animation_transform;
+            else if (driver->channel == "scale")
+                scene_config.id2node[driver->node]->scale = scene_config.id2node[driver->node]->translation = animation_transform;
         }
     }
     
@@ -305,23 +316,12 @@ void SceneViewer::setup_frame_instances() {
         dfs_instance(node_id, currentFrame, identity_m);
     }
 
-    // for (int i=0; i<frame_instances[currentFrame].size(); i++) {
-    //     auto& ms = frame_instances[currentFrame][i];
-    //     for (auto& s : ms) {
-    //         cglm::printMatrix(s);
-    //     }
-    // }
 }
 
 void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f parent_transform) {
     std::shared_ptr<sconfig::Node> node = scene_config.id2node[node_id];
     cglm::Mat44f curTransform;
-    if (animationPlay) {
-        curTransform = parent_transform * node->transform * node->animation_transform;
-    }
-    else {
-        curTransform = parent_transform * node->transform;
-    }
+    curTransform = parent_transform * node->translation * node->rotation * node->scale;
 
     // dfs on children
     for (auto child_id : node->children) {

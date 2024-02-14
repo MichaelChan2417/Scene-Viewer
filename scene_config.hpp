@@ -83,11 +83,15 @@ namespace sconfig {
     struct Node {
         int id;
         std::string name;
-        cglm::Mat44f transform;             // this is for current node transformation
-        cglm::Mat44f animation_transform;   // this is for animation transformation
+        // cglm::Mat44f transform;             // this is for current node transformation
+        // cglm::Mat44f animation_transform;   // this is for animation transformation
+        cglm::Mat44f translation;
+        cglm::Mat44f rotation;
+        cglm::Mat44f scale; 
         std::vector<int> children;
         std::vector<int> parents;
         std::vector<int> mesh;
+        std::string driver_name;
 
         int camera;
         int vertex_count;
@@ -102,6 +106,7 @@ namespace sconfig {
         std::vector<double> times;
         std::vector<double> values;
         std::string interpolation;  // interpolation could be "STEP" or "LINEAR" or "SLERP"
+        bool useful;
 
         cglm::Mat44f getCurrentTransform(double time);
     };

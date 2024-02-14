@@ -163,7 +163,7 @@ void SceneViewer::createRenderPass() {
         .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
 
-    VkAttachmentDescription depthAttachment{
+    VkAttachmentDescription depthAttachment {
         .format = findDepthFormat(),
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -213,7 +213,7 @@ void SceneViewer::createRenderPass() {
 
 
 VkShaderModule SceneViewer::createShaderModule(const std::vector<char>& code) {
-    VkShaderModuleCreateInfo createInfo{
+    VkShaderModuleCreateInfo createInfo {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .codeSize = code.size(),
         .pCode = reinterpret_cast<const uint32_t*>(code.data())

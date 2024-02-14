@@ -134,6 +134,8 @@ public:
         cleanup();
     }
 
+    void run_headless(std::string& events);
+
     void list_physical_devices();    // list all physical devices
 
 // private:

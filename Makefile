@@ -11,6 +11,7 @@ LDFLAGS = -L$(GLFWPATHLIB) -L$(VULKANPATH)/Lib -lglfw3dll -lvulkan-1
 
 # 源文件列表
 SOURCES = scene_viewer.cpp main.cpp scene_config.cpp libs\mcjp.cpp \
+			headless.cpp \
 			implement\instance.cpp \
 			implement\validation_layer.cpp \
 			implement\physical_device.cpp \
@@ -47,6 +48,9 @@ main.o: main.cpp scene_viewer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 mcjp.o: libs\mcjp.cpp libs\mcjp.hpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+headless.o: headless.cpp scene_viewer.hpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 scene_config.o: scene_config.cpp scene_config.hpp libs\cglm.hpp libs\mcjp.hpp

@@ -219,8 +219,11 @@ namespace sconfig {
         }
 
         // then the rest are all cases to instances
-        node->transform = translate_m * rotation_m * scale_m;
-        node->animation_transform = cglm::identity(1.0f);
+        // node->transform = translate_m * rotation_m * scale_m;
+        // node->animation_transform = cglm::identity(1.0f);
+        node->translation = translate_m;
+        node->rotation = rotation_m;
+        node->scale = scale_m;
 
         // inherit information will not change, we create instances here
         // all children's instances are directly my instances
@@ -259,6 +262,14 @@ namespace sconfig {
         std::shared_ptr<Driver> driver = std::make_shared<Driver>();
         driver->name = std::get<std::string>(obj->contents.at("name"));
         driver->node = static_cast<int>(std::get<double>(obj->contents.at("node")));
+        driver->useful = true;
+        std::string prev_name = id2node[driver->node]->driver_name;
+        std::cout << "Driver " << driver->name << " " << driver->node << " " << prev_name << std::endl;
+        std::cout << "Prev name " << prev_name << std::endl;
+        if (!prev_name.empty()) {
+            name2driver[prev_name]->useful = false;
+        }
+        id2node[driver->node]->driver_name = driver->name;
         driver->channel = std::get<std::string>(obj->contents.at("channel"));
         driver->times = std::get<std::vector<double>>(obj->contents.at("times"));
         driver->values = std::get<std::vector<double>>(obj->contents.at("values"));
