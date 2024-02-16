@@ -415,9 +415,9 @@ namespace sconfig {
                 cameraPtr->vfov = 1.04719f;
                 cameraPtr->near = 0.1f;
                 cameraPtr->far = 50.0f;
-                cameraPtr->position = { 0.0f, 0.0f, 4.0f };
-                cameraPtr->up = { 0.0f, 1.0f, 0.0f };
-                cameraPtr->dir = {0.0f, 0.0f, -1.0f};
+                cameraPtr->position = { -8.0f, 0.0f, 4.0f };
+                cameraPtr->up = { 1.0f, 0.0f, 0.0f };
+                cameraPtr->dir = {0.0f, 0.0f, 1.0f};
                 cameras["debug"] = cameraPtr;
                 cameraPtr->update_planes();
                 this->cur_camera = "debug";

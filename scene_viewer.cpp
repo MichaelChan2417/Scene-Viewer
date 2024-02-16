@@ -190,6 +190,20 @@ void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int act
         camera->up = cglm::normalize(rot * up);
     }
 
+    // i-73, o-79
+    if (key_map[73]) {
+        // rotate around dir axis
+        cglm::Mat44f rot = cglm::rotate(dir, cglm::to_radians(-2.0f));
+        cglm::Vec3f new_up = rot * up;
+        camera->up = cglm::normalize(new_up);
+    }
+    if (key_map[79]) {
+        // rotate around dir axis
+        cglm::Mat44f rot = cglm::rotate(dir, cglm::to_radians(2.0f));
+        cglm::Vec3f new_up = rot * up;
+        camera->up = cglm::normalize(new_up);
+    }
+
     // now control camera movement
     if (key_map[87]) {
         cglm::Vec3f new_pos = camera->position + dir * 0.1f;
@@ -298,10 +312,10 @@ void SceneViewer::setup_frame_instances() {
     // for each driver, assign current animation_transform matrix
     if (animationPlay) {
         for (auto& [name, driver] : scene_config.name2driver) {
-            if (!driver->useful) {
-                std::cout << name << " is not useful, skip" << std::endl;
-                continue;
-            }
+            // if (!driver->useful) {
+            //     std::cout << name << " is not useful, skip" << std::endl;
+            //     continue;
+            // }
             cglm::Mat44f animation_transform = driver->getCurrentTransform(dtime);
             if (driver->channel == "translation")
                 scene_config.id2node[driver->node]->translation = animation_transform;
