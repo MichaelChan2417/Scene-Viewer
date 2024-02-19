@@ -16,6 +16,11 @@ void SceneViewer::run_headless(std::string& events) {
     initHeadlessVulkan();
 
     // headless loop
+    for (auto ev : evs) {
+        if (ev->type == MARK) {
+            std::cout << "MARK: " << ev->args << std::endl;
+        }
+    }
 
     // headless cleanup
     headlessCleanup();
