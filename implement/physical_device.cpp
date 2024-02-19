@@ -15,6 +15,12 @@ void SceneViewer::pickPhysicalDevice() {
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
+    // special case for headless mode
+    if (is_headless) {
+        physicalDevice = devices[0];
+        return;
+    }
+
     for (const auto& device : devices) {
         if (isPhysicalDeviceSuitable(device)) {
             physicalDevice = device;

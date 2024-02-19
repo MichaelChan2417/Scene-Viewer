@@ -414,10 +414,10 @@ namespace sconfig {
                 cameraPtr->aspect = 1.777f;
                 cameraPtr->vfov = 1.04719f;
                 cameraPtr->near = 0.1f;
-                cameraPtr->far = 50.0f;
-                cameraPtr->position = { -8.0f, 0.0f, 4.0f };
-                cameraPtr->up = { 1.0f, 0.0f, 0.0f };
-                cameraPtr->dir = {0.0f, 0.0f, 1.0f};
+                cameraPtr->far = 100.0f;
+                cameraPtr->position = { -12.0f, 0.0f, 7.0f };
+                cameraPtr->dir = { 1.0f, 0.0f, 0.0f };
+                cameraPtr->up = {0.0f, 0.0f, 1.0f};
                 cameras["debug"] = cameraPtr;
                 cameraPtr->update_planes();
                 this->cur_camera = "debug";
@@ -430,10 +430,10 @@ namespace sconfig {
                 cameraPtr->aspect = 1.777f;
                 cameraPtr->vfov = 1.04719f;
                 cameraPtr->near = 0.1f;
-                cameraPtr->far = 10.0f;
+                cameraPtr->far = 100.0f;
                 cameraPtr->position = { 0.0f, 0.0f, 4.0f };
-                cameraPtr->up = { 0.0f, 1.0f, 0.0f };
                 cameraPtr->dir = {0.0f, 0.0f, -1.0f};
+                cameraPtr->up = { 0.0f, 1.0f, 0.0f };
                 cameras["user"] = cameraPtr;
                 cameraPtr->update_planes();
                 id2camera_name[0] = "user";

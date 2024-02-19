@@ -123,6 +123,7 @@ public:
     std::string camera_name = "debug";
     std::string culling = "none";
     std::string events;
+    bool is_headless = false;
     std::optional < std::string > device_name = std::nullopt;
 
     void run() {
@@ -148,6 +149,10 @@ public:
     VkQueue graphicsQueue;              // graphics queue with logical device
     VkQueue presentQueue;               // present queue with logical device
     VkSurfaceKHR surface;
+
+    // headless 
+    uint32_t queueFamilyIndex;
+
     VkSwapchainKHR swapChain;
     std::vector<VkImage> swapChainImages;   // images in the swap chain
     VkFormat swapChainImageFormat;          // format of the swap chain image
@@ -180,6 +185,12 @@ public:
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
 
+    VkImage colorImage;
+    VkDeviceMemory colorImageMemory;
+    VkImageView colorImageView;
+
+    VkFramebuffer headlessFramebuffer;
+
     std::chrono::high_resolution_clock::time_point startTime;
 
     static bool leftMouseButtonPressed;
@@ -192,8 +203,10 @@ public:
     // interfaces
     void initWindow();
     void initVulkan();
+    void initHeadlessVulkan();
     void mainLoop();
     void cleanup();
+    void headlessCleanup();
     void loadCheck();
 
     static void mouse_control_callback(GLFWwindow* window, int button, int action, int mods);
@@ -210,6 +223,7 @@ public:
 
     // depth management
     void createDepthResources();
+    void createHeadlessDepthResources();
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
     VkFormat findDepthFormat();
     bool hasStencilComponent(VkFormat format);
@@ -231,7 +245,10 @@ public:
 
     // framebuffer
     void createFramebuffers();
+    void createHeadlessFramebuffers();
+    void createColorResources();
     void createCommandPool();
+    void createHeadlessCommandPool();
     void createCommandBuffers();
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void drawFrame();
@@ -242,6 +259,7 @@ public:
     void createGraphicsPipeline();
     VkShaderModule createShaderModule(const std::vector<char>& code);
     void createRenderPass();
+    void createHeadlessRenderPass();
 
     // image views
     void createImageViews();
@@ -263,6 +281,7 @@ public:
 
     // logic device
     void createLogicalDevice();
+    void createHeadlessLogicalDevice();
 
     // physical device
     void pickPhysicalDevice();

@@ -25,6 +25,30 @@ void SceneViewer::createFramebuffers() {
     }    
 }
 
+void SceneViewer::createHeadlessFramebuffers() {
+    
+    createColorResources();
+    createHeadlessDepthResources();
+
+    VkImageView attachments[2];
+    attachments[0] = colorImageView;
+    attachments[1] = depthImageView;
+
+    VkFramebufferCreateInfo framebufferInfo{
+        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        .renderPass = renderPass,
+        .attachmentCount = 2,
+        .pAttachments = attachments,
+        .width = static_cast<uint32_t>(window_width),
+        .height = static_cast<uint32_t>(window_height),
+        .layers = 1,
+    };
+
+    if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &headlessFramebuffer) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create framebuffer!");
+    }
+}
+
 void SceneViewer::createCommandPool() {
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
     VkCommandPoolCreateInfo poolInfo{
@@ -33,6 +57,17 @@ void SceneViewer::createCommandPool() {
         .queueFamilyIndex = queueFamilyIndices.graphicsFamily.value(),
     };
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create command pool!");
+    }
+}
+
+void SceneViewer::createHeadlessCommandPool() {
+    VkCommandPoolCreateInfo cmdPoolInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .queueFamilyIndex = queueFamilyIndex,
+    };
+    if (vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &commandPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create command pool!");
     }
 }

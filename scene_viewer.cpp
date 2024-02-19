@@ -242,6 +242,11 @@ void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int act
         app->animationPlay = !app->animationPlay;
     }
 
+    // print camera info
+    // std::cout << "Camera Position: " << camera->position[0] << " " << camera->position[1] << " " << camera->position[2] << std::endl;
+    // std::cout << "Camera Dir: " << camera->dir[0] << " " << camera->dir[1] << " " << camera->dir[2] << std::endl;
+    // std::cout << "Camera Up: " << camera->up[0] << " " << camera->up[1] << " " << camera->up[2] << std::endl;
+
     camera->update_planes();
 }
 
