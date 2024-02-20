@@ -101,7 +101,7 @@ void SceneViewer::mainLoop() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
-        setup_frame_instances();
+        setup_frame_instances(-1);
 
         drawFrame();
     }
@@ -304,7 +304,7 @@ void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, doub
     }
 }
 
-void SceneViewer::setup_frame_instances() {
+void SceneViewer::setup_frame_instances(double inTime) {
     // start from root, make each dfs, using currentFrame
     for (int i = 0; i < scene_config.id2mesh.size(); i++) {
         frame_instances[currentFrame][i].clear();
@@ -313,7 +313,10 @@ void SceneViewer::setup_frame_instances() {
     cglm::Mat44f identity_m = cglm::identity(1.0f);
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    double dtime = std::chrono::duration<double, std::chrono::seconds::period>(currentTime - startTime).count();   
+    double dtime = std::chrono::duration<double, std::chrono::seconds::period>(currentTime - startTime).count();
+    if (inTime != -1) {
+        dtime = inTime;
+    }
     // for each driver, assign current animation_transform matrix
     if (animationPlay) {
         for (auto& [name, driver] : scene_config.name2driver) {

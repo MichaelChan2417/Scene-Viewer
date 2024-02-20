@@ -45,7 +45,7 @@ void SceneViewer::createHeadlessFramebuffers() {
     };
 
     if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &headlessFramebuffer) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create framebuffer!");
+        throw std::runtime_error("Failed to create framebuffer!");
     }
 }
 
@@ -85,9 +85,33 @@ void SceneViewer::createCommandBuffers() {
     }
 }
 
+void SceneViewer::createHeadlessCommandBuffers() {
+    commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    VkCommandBufferAllocateInfo allocInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = commandPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = static_cast<uint32_t>(commandBuffers.size()),
+    };
+    if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
+
+    copyCmdBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    VkCommandBufferAllocateInfo copyAllocInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = commandPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = static_cast<uint32_t>(copyCmdBuffers.size()),
+    };
+    if (vkAllocateCommandBuffers(device, &copyAllocInfo, copyCmdBuffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
+}
+
 void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
     // begin recording command buffer
-    VkCommandBufferBeginInfo beginInfo{
+    VkCommandBufferBeginInfo beginInfo {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = 0,
         .pInheritanceInfo = nullptr,
@@ -210,7 +234,7 @@ void SceneViewer::drawFrame() {
     VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
-    VkSubmitInfo submitInfo{
+    VkSubmitInfo submitInfo {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = waitSemaphores,
@@ -226,7 +250,7 @@ void SceneViewer::drawFrame() {
     }
 
     VkSwapchainKHR swapChains[] = { swapChain };
-    VkPresentInfoKHR presentInfo{
+    VkPresentInfoKHR presentInfo {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = signalSemaphores,
@@ -258,7 +282,7 @@ void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer) {
     std::vector<std::vector<cglm::Mat44f>> curFrameInstances = frame_instances[currentFrame];  // vector is mesh based
     int curVertexIndex = 0;
     int curInstanceIndex = 0;
-
+    
     // this is also the number of vertices
     for (size_t i = 0; i < curFrameInstances.size(); i++) {
         // for each mesh, draw the instance vertexs
@@ -285,4 +309,6 @@ void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer) {
         curVertexIndex = nextVertexIndex;
         curInstanceIndex += numInstances;
     }
+
+    // std::cout << curInstanceIndex << " instances drawn" << std::endl;
 }

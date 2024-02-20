@@ -25,7 +25,7 @@ void SceneViewer::copyAllMeshVertexToBuffer() {
     for (int inner_id = 0; inner_id < scene_config.cur_mesh; inner_id++) {
         std::shared_ptr<sconfig::Mesh> meshPtr = scene_config.id2mesh[scene_config.innerId2meshId[inner_id]];
         int vertex_count = meshPtr->vertex_count;
-        std::cout << "Inner vertex count: " << vertex_count << std::endl;
+        // std::cout << "Inner vertex count: " << vertex_count << std::endl;
         for (int i = 0; i < vertex_count; i++) {
             static_vertices[prev + i] = {
                 .pos = meshPtr->positions[i],

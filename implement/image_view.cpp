@@ -102,11 +102,12 @@ void SceneViewer::createUniformBuffers() {
 
 void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
 
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    // auto currentTime = std::chrono::high_resolution_clock::now();
+    // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     UniformBufferObject ubo{};
-    ubo.model = cglm::rotate({0.0f, 1.0f, 0.0f}, time * cglm::to_radians(0.0f));
+    // ubo.model = cglm::rotate({0.0f, 1.0f, 0.0f}, time * cglm::to_radians(0.0f));
+    ubo.model = cglm::identity(1.0f);
 
     std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
     // ubo's view is based on current camera
@@ -121,14 +122,6 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
     // ubo.view = cglm::lookAt(cglm::Vec3f(2.0f, 2.0f, 2.0f), cglm::Vec3f(0.0f, 0.0f, 0.0f), cglm::Vec3f(0.0f, 0.0f, 1.0f));
     // ubo.proj = cglm::perspective(cglm::to_radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
     // ubo.proj[1][1] *= -1;
-
-    // generate a diagonal matrix
-    // cglm::Mat44f diag = {
-    //     {1.0f, 0.0f, 0.0f, 0.0f},
-    //     {0.0f, 1.0f, 0.0f, 0.0f},
-    //     {0.0f, 0.0f, 1.0f, 0.0f},
-    //     {0.0f, 0.0f, 0.0f, 1.0f}
-    // };
 
     int idx = 0;
     for (auto& mesh_instances : frame_instances[currentFrame]) {

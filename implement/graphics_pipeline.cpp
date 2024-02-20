@@ -290,7 +290,7 @@ void SceneViewer::createHeadlessRenderPass() {
     };
 
     // create headless render pass
-    VkRenderPassCreateInfo renderPassInfo{
+    VkRenderPassCreateInfo renderPassInfo {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         .attachmentCount = static_cast<uint32_t>(attachments.size()),
         .pAttachments = attachments.data(),

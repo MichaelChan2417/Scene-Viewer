@@ -164,6 +164,7 @@ public:
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
+    std::vector<VkCommandBuffer> copyCmdBuffers;
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
@@ -189,7 +190,11 @@ public:
     VkDeviceMemory colorImageMemory;
     VkImageView colorImageView;
 
+    // headless specs
     VkFramebuffer headlessFramebuffer;
+    VkImage dstImage;
+    VkDeviceMemory dstImageMemory;
+    VkMemoryRequirements memRequirements;
 
     std::chrono::high_resolution_clock::time_point startTime;
 
@@ -215,8 +220,11 @@ public:
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     // =================== inner functions ===================
     void easyCheckSetup();
-    void setup_frame_instances();
+    void setup_frame_instances(double inTime);
     void dfs_instance(int node_id, int currentFrame, cglm::Mat44f parent_transform);
+    void saveImage(std::string filename);
+    void createDstImage();
+    void copyToDstImage();
 
     void createInstance();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -250,10 +258,14 @@ public:
     void createCommandPool();
     void createHeadlessCommandPool();
     void createCommandBuffers();
+    void createHeadlessCommandBuffers();
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+    void recordHeadlessCommandBuffer(VkCommandBuffer commandBuffer);
     void drawFrame();
+    void drawHeadlessFrame();
     void createSyncObjects();
     void frameRealDraw(VkCommandBuffer commandBuffer);
+    void headlessFrameFetch();
 
     // graphics pipeline
     void createGraphicsPipeline();
@@ -278,6 +290,7 @@ public:
 
     // window surface
     void createSurface();
+    void createHeadlessSurface();
 
     // logic device
     void createLogicalDevice();

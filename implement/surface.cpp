@@ -5,3 +5,13 @@ void SceneViewer::createSurface() {
         throw std::runtime_error("failed to create window surface!");
     }
 }
+
+void SceneViewer::createHeadlessSurface() {
+    VkHeadlessSurfaceCreateInfoEXT createInfo{
+        .sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT,
+    };
+
+    if (vkCreateHeadlessSurfaceEXT(instance, &createInfo, nullptr, &surface) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create headless surface!");
+    }
+}

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <memory>
 #include <stdexcept>
@@ -51,7 +52,13 @@ static void parseEvents(std::string& filename, std::vector<std::shared_ptr<Event
         }
         else if (line[0] == 'S') {
             ev->type = SAVE;
-            ev->args = line.substr(5);
+            std::string ss;
+            for (char c : line) {
+                if (c != '\r' && c != '\n') {
+                    ss += c;
+                }
+            }
+            ev->args = ss.substr(5);
         }
         events.push_back(ev);
     }
