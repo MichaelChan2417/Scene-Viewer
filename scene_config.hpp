@@ -111,6 +111,14 @@ namespace sconfig {
         cglm::Mat44f getCurrentTransform(double time);
     };
 
+    struct Material {
+        std::string name;
+    };
+
+    struct Environment {
+        
+    };
+
     struct Scene {
         std::string name;
         std::vector<int> children;

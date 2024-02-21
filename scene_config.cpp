@@ -406,6 +406,9 @@ namespace sconfig {
                 std::shared_ptr<Driver> driverPtr = generateDriver(obj);
                 name2driver[driverPtr->name] = driverPtr;
             }
+            else if (type == "material" || type == "MATERIAL") {
+                
+            }
 
             if (cameras["debug"] == nullptr) {
                 // we create a default camera
