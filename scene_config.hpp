@@ -8,6 +8,7 @@
 #include <memory>
 #include <algorithm>
 #include <stdexcept>
+#include <set>
 
 #include "libs/cglm.hpp"
 #include "libs/mcjp.hpp"
@@ -18,6 +19,14 @@ struct FloatData {
 
 struct RgbaData {
     uint8_t r, g, b, a;
+};
+
+enum MaterialType {
+    pbr,
+    lambertian,
+    mirror,
+    environment,
+    simple,
 };
 
 // TODO: currently not include SCENE
@@ -71,11 +80,17 @@ namespace sconfig {
 
         // vertex data
         std::vector<cglm::Vec3f> positions;
-        std::string position_format;
         std::vector<cglm::Vec3f> normals;
-        std::string normal_format;
         std::vector<cglm::Vec3f> colors;
+        std::string position_format;
+        std::string normal_format;
         std::string color_format;
+
+        // texture data
+        std::vector<cglm::Vec4f> tangents;
+        std::vector<cglm::Vec2f> texcoords;
+
+        int material_id;
 
         std::shared_ptr<Bound_Sphere> bound_sphere;
     };
@@ -111,12 +126,33 @@ namespace sconfig {
         cglm::Mat44f getCurrentTransform(double time);
     };
 
+
+    struct pbr {
+        std::variant < std::vector<double>, std::string > albedo;
+        std::variant < double, std::string > roughness;
+        std::variant < double, std::string > metalness;
+    };
+
+    struct lambertian {
+        std::variant < std::vector<double>, std::string > albedo;
+    };
+
     struct Material {
         std::string name;
+
+        std::string normal_map;
+        std::string displacement_map;
+
+        MaterialType matetial_type;
+        std::variant < pbr, lambertian > matetial_detail;
     };
 
     struct Environment {
-        
+        std::string name;
+
+        std::string texture_src;
+        std::string texture_type;
+        std::string texture_format;
     };
 
     struct Scene {
@@ -132,7 +168,11 @@ namespace sconfig {
         std::unordered_map<int, std::shared_ptr<Instance>> id2instance;
         std::unordered_map<int, std::shared_ptr<Node>> id2node;
         std::unordered_map<std::string, std::shared_ptr<Driver>> name2driver;
+        std::unordered_map<int, std::shared_ptr<Material>> id2material;
+        std::set<std::string> texture_set;
+
         std::shared_ptr<Scene> scene;
+        std::shared_ptr<Environment> environment;
 
         std::string cur_camera;
         int cur_instance;
@@ -148,6 +188,8 @@ namespace sconfig {
         std::shared_ptr<Node> generateNode(const mcjp::Object* obj, size_t node_id);
         std::shared_ptr<Scene> generateScene(const mcjp::Object* obj);
         std::shared_ptr<Driver> generateDriver(const mcjp::Object* obj);
+        std::shared_ptr<Material> generateMaterial(const mcjp::Object* obj);
+        std::shared_ptr<Environment> generateEnvironment(const mcjp::Object* obj);
     };
 
 

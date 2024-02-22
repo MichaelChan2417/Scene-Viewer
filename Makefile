@@ -23,7 +23,8 @@ SOURCES = scene_viewer.cpp main.cpp scene_config.cpp libs/mcjp.cpp \
 			implement/graphics_pipeline.cpp \
 			implement/framebuffer.cpp	\
 			implement/vertexbuffer.cpp \
-			implement/depth_resources.cpp
+			implement/depth_resources.cpp \
+			implement/texture.cpp
 
 # 生成目标文件列表
 # OBJECTS = $(SOURCES:.cpp=.o)

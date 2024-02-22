@@ -103,13 +103,69 @@ namespace sconfig {
         mesh->bound_sphere->center = center;
         mesh->bound_sphere->radius = radius;
     }
+
+
+    /**
+     * Material Generator
+    */
+    std::shared_ptr<Material> generateMaterial(const mcjp::Object* obj) {
+        std::shared_ptr<Material> material = std::make_shared<Material>();
+        material->name = std::get<std::string>(obj->contents.at("name"));
+
+        // TODO: skip for now -- normal map
+        // TODO: skip for now -- displacement map
+
+        // pbr, lambertian, mirror, environment, simple, should only be one of them
+        if (obj->contents.find("pbr") != obj->contents.end()) {
+            material->matetial_type = MaterialType::pbr;
+        }
+        else if (obj->contents.find("lambertian") != obj->contents.end()) {
+            material->matetial_type = MaterialType::lambertian;
+        }
+        else if (obj->contents.find("mirror") != obj->contents.end()) {
+            material->matetial_type = MaterialType::mirror;
+        }
+        else if (obj->contents.find("environment") != obj->contents.end()) {
+            material->matetial_type = MaterialType::environment;
+        }
+        else if (obj->contents.find("simple") != obj->contents.end()) {
+            material->matetial_type = MaterialType::simple;
+        }
+
+        return material;
+    }
+
+
+    /**
+     * Environment Generator
+    */
     
+    std::shared_ptr<Environment> generateEnvironment(const mcjp::Object* obj) {
+        std::shared_ptr<Environment> environment = std::make_shared<Environment>();
+        environment->name = std::get<std::string>(obj->contents.at("name"));
+        mcjp::Object* radiance = std::get<mcjp::Object*>(obj->contents.at("radiance"));
+
+        environment->texture_src = std::get<std::string>(radiance->contents.at("src"));
+        environment->texture_type = std::get<std::string>(radiance->contents.at("type"));
+        environment->texture_format = std::get<std::string>(radiance->contents.at("format"));
+
+        return environment;
+    }
+
+    
+    /**
+     * Mesh Generator 
+    */
     std::shared_ptr<Mesh> SceneConfig::generateMesh(const mcjp::Object* obj) {
         std::shared_ptr<Mesh> mesh = std::make_shared<Mesh>();
         mesh->inner_id = cur_mesh++;
         mesh->name = std::get<std::string>(obj->contents.at("name"));
         mesh->topology = std::get<std::string>(obj->contents.at("topology"));
         mesh->vertex_count = static_cast<size_t>(std::get<double>(obj->contents.at("count")));
+        mesh->material_id = -1;
+        if (obj->contents.find("material") != obj->contents.end()) {
+            mesh->material_id = static_cast<int>(std::get<double>(obj->contents.at("material")));
+        }
 
         // TODO: handle optional indices
         if (obj->contents.find("indices") != obj->contents.end()) {
@@ -121,6 +177,8 @@ namespace sconfig {
         mcjp::Object* position = std::get<mcjp::Object*>(attributes->contents.at("POSITION"));
         mcjp::Object* normal = std::get<mcjp::Object*>(attributes->contents.at("NORMAL"));
         mcjp::Object* color = std::get<mcjp::Object*>(attributes->contents.at("COLOR"));
+        mcjp::Object* tangent = std::get<mcjp::Object*>(attributes->contents.at("TANGENT"));
+        mcjp::Object* texcoord = std::get<mcjp::Object*>(attributes->contents.at("TEXCOORD"));
 
         mesh->position_format = std::get<std::string>(position->contents.at("format"));
         mesh->normal_format = std::get<std::string>(normal->contents.at("format"));
@@ -131,6 +189,8 @@ namespace sconfig {
         int stride = std::get<double>(position->contents.at("stride"));
         int pos_offset = std::get<double>(position->contents.at("offset"));
         int normal_offset = std::get<double>(normal->contents.at("offset"));
+        int tangent_offset = std::get<double>(tangent->contents.at("offset"));
+        int texcoord_offset = std::get<double>(texcoord->contents.at("offset"));
         int color_offset = std::get<double>(color->contents.at("offset"));
 
         std::ifstream file(file_name, std::ios::binary);
@@ -140,6 +200,7 @@ namespace sconfig {
 
         // read vertex_count times, each time read stride bytes
         for (int i = 0; i < mesh->vertex_count; i++) {
+            // positions
             file.seekg(pos_offset + i * stride);
             float x, y, z;
             file.read(reinterpret_cast<char*>(&x), sizeof(float));
@@ -147,6 +208,7 @@ namespace sconfig {
             file.read(reinterpret_cast<char*>(&z), sizeof(float));
             mesh->positions.push_back(cglm::Vec3f{ x, y, z });
 
+            // normals
             file.seekg(normal_offset + i * stride);
             float nx, ny, nz;
             file.read(reinterpret_cast<char*>(&nx), sizeof(float));
@@ -154,6 +216,23 @@ namespace sconfig {
             file.read(reinterpret_cast<char*>(&nz), sizeof(float));
             mesh->normals.push_back(cglm::Vec3f{ nx, ny, nz });
 
+            // tangents
+            file.seekg(tangent_offset + i * stride);
+            float tx, ty, tz, tw;
+            file.read(reinterpret_cast<char*>(&tx), sizeof(float));
+            file.read(reinterpret_cast<char*>(&ty), sizeof(float));
+            file.read(reinterpret_cast<char*>(&tz), sizeof(float));
+            file.read(reinterpret_cast<char*>(&tw), sizeof(float));
+            mesh->tangents.push_back(cglm::Vec4f{ tx, ty, tz, tw });
+
+            // texcoords
+            file.seekg(texcoord_offset + i * stride);
+            float u, v;
+            file.read(reinterpret_cast<char*>(&u), sizeof(float));
+            file.read(reinterpret_cast<char*>(&v), sizeof(float));
+            mesh->texcoords.push_back(cglm::Vec2f{ u, v });
+
+            // colors
             file.seekg(color_offset + i * stride);
             uint8_t r, g, b, a;
             file.read(reinterpret_cast<char*>(&r), sizeof(uint8_t));
@@ -173,6 +252,9 @@ namespace sconfig {
     }
 
 
+    /**
+     * Node Generator
+    */
     std::shared_ptr<Node> SceneConfig::generateNode(const mcjp::Object* obj, size_t id) {
         std::shared_ptr<Node> node = std::make_shared<Node>();
         node->name = std::get<std::string>(obj->contents.at("name"));
@@ -392,7 +474,7 @@ namespace sconfig {
                 meshPtr->id = static_cast<int>(i);
                 id2mesh[i] = meshPtr;
                 innerId2meshId[meshPtr->inner_id] = meshPtr->id;
-                std::cout << "Mesh " << meshPtr->id << " " << meshPtr->name << " has vertex count " << meshPtr->vertex_count << std::endl;
+                // std::cout << "Mesh " << meshPtr->id << " " << meshPtr->name << " has vertex count " << meshPtr->vertex_count << std::endl;
             }
             else if (type == "node" || type == "NODE") {
                 std::shared_ptr<Node> nodePtr = generateNode(obj, i);
@@ -407,7 +489,14 @@ namespace sconfig {
                 name2driver[driverPtr->name] = driverPtr;
             }
             else if (type == "material" || type == "MATERIAL") {
-                
+                std::shared_ptr<Material> materialPtr = generateMaterial(obj);
+                id2material[i] = materialPtr;
+                // TODO: remember to add texture to set in later stage
+            }
+            else if (type == "environment" || type == "ENVIRONMENT") {
+                environment = generateEnvironment(obj);
+                // adding texture to set
+                texture_set.insert(environment->texture_src);
             }
 
             if (cameras["debug"] == nullptr) {
