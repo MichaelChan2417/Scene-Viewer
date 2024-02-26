@@ -25,6 +25,10 @@ void SceneViewer::initVulkan() {
     createDepthResources();
     createFramebuffers();
 
+    createTextureImage();
+    createTextureImageView();
+    createTextureSampler();
+
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffers();
@@ -373,14 +377,6 @@ void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f paren
             float distance = cglm::dot(plane->normal, new_center) - plane->d;
             if (distance + new_radius < 0.0f) {
                 visible = false;
-                // std::cout << node->name << "\'s " << scene_config.id2mesh[mesh_id]->name << " is not visible on " << ii << std::endl;
-                // std::cout << "Old Center: " << bound_sphere->center << " Old Radius: " << bound_sphere->radius << " Scale: " << scale_x << " " << scale_y << " " << scale_z << std::endl;
-                // std::cout << "New Center: " << new_center << " New Radius: " << new_radius << std::endl;
-
-                // std::cout << "Camera pos: " << scene_config.cameras[scene_config.cur_camera]->position;
-                // std::cout << " Camera dir: " << scene_config.cameras[scene_config.cur_camera]->dir;
-                // std::cout << " Camera up: " << scene_config.cameras[scene_config.cur_camera]->up << std::endl;
-                // std::cout << "Plane Normal: " << plane->normal << " Plane D: " << plane->d << std::endl;
                 break;
             }
             ++ii;

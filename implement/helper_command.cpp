@@ -1,6 +1,5 @@
 #include "../scene_viewer.hpp"
 
-
 VkCommandBuffer SceneViewer::beginSingleTimeCommands() {
     VkCommandBufferAllocateInfo allocInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,

@@ -108,7 +108,7 @@ namespace sconfig {
     /**
      * Material Generator
     */
-    std::shared_ptr<Material> generateMaterial(const mcjp::Object* obj) {
+    std::shared_ptr<Material> SceneConfig::generateMaterial(const mcjp::Object* obj) {
         std::shared_ptr<Material> material = std::make_shared<Material>();
         material->name = std::get<std::string>(obj->contents.at("name"));
 
@@ -140,7 +140,7 @@ namespace sconfig {
      * Environment Generator
     */
     
-    std::shared_ptr<Environment> generateEnvironment(const mcjp::Object* obj) {
+    std::shared_ptr<Environment> SceneConfig::generateEnvironment(const mcjp::Object* obj) {
         std::shared_ptr<Environment> environment = std::make_shared<Environment>();
         environment->name = std::get<std::string>(obj->contents.at("name"));
         mcjp::Object* radiance = std::get<mcjp::Object*>(obj->contents.at("radiance"));
@@ -177,8 +177,8 @@ namespace sconfig {
         mcjp::Object* position = std::get<mcjp::Object*>(attributes->contents.at("POSITION"));
         mcjp::Object* normal = std::get<mcjp::Object*>(attributes->contents.at("NORMAL"));
         mcjp::Object* color = std::get<mcjp::Object*>(attributes->contents.at("COLOR"));
-        mcjp::Object* tangent = std::get<mcjp::Object*>(attributes->contents.at("TANGENT"));
-        mcjp::Object* texcoord = std::get<mcjp::Object*>(attributes->contents.at("TEXCOORD"));
+        // mcjp::Object* tangent = std::get<mcjp::Object*>(attributes->contents.at("TANGENT"));
+        // mcjp::Object* texcoord = std::get<mcjp::Object*>(attributes->contents.at("TEXCOORD"));
 
         mesh->position_format = std::get<std::string>(position->contents.at("format"));
         mesh->normal_format = std::get<std::string>(normal->contents.at("format"));
@@ -189,8 +189,8 @@ namespace sconfig {
         int stride = std::get<double>(position->contents.at("stride"));
         int pos_offset = std::get<double>(position->contents.at("offset"));
         int normal_offset = std::get<double>(normal->contents.at("offset"));
-        int tangent_offset = std::get<double>(tangent->contents.at("offset"));
-        int texcoord_offset = std::get<double>(texcoord->contents.at("offset"));
+        // int tangent_offset = std::get<double>(tangent->contents.at("offset"));
+        // int texcoord_offset = std::get<double>(texcoord->contents.at("offset"));
         int color_offset = std::get<double>(color->contents.at("offset"));
 
         std::ifstream file(file_name, std::ios::binary);
@@ -217,20 +217,20 @@ namespace sconfig {
             mesh->normals.push_back(cglm::Vec3f{ nx, ny, nz });
 
             // tangents
-            file.seekg(tangent_offset + i * stride);
-            float tx, ty, tz, tw;
-            file.read(reinterpret_cast<char*>(&tx), sizeof(float));
-            file.read(reinterpret_cast<char*>(&ty), sizeof(float));
-            file.read(reinterpret_cast<char*>(&tz), sizeof(float));
-            file.read(reinterpret_cast<char*>(&tw), sizeof(float));
-            mesh->tangents.push_back(cglm::Vec4f{ tx, ty, tz, tw });
+            // file.seekg(tangent_offset + i * stride);
+            // float tx, ty, tz, tw;
+            // file.read(reinterpret_cast<char*>(&tx), sizeof(float));
+            // file.read(reinterpret_cast<char*>(&ty), sizeof(float));
+            // file.read(reinterpret_cast<char*>(&tz), sizeof(float));
+            // file.read(reinterpret_cast<char*>(&tw), sizeof(float));
+            // mesh->tangents.push_back(cglm::Vec4f{ tx, ty, tz, tw });
 
             // texcoords
-            file.seekg(texcoord_offset + i * stride);
-            float u, v;
-            file.read(reinterpret_cast<char*>(&u), sizeof(float));
-            file.read(reinterpret_cast<char*>(&v), sizeof(float));
-            mesh->texcoords.push_back(cglm::Vec2f{ u, v });
+            // file.seekg(texcoord_offset + i * stride);
+            // float u, v;
+            // file.read(reinterpret_cast<char*>(&u), sizeof(float));
+            // file.read(reinterpret_cast<char*>(&v), sizeof(float));
+            // mesh->texcoords.push_back(cglm::Vec2f{ u, v });
 
             // colors
             file.seekg(color_offset + i * stride);

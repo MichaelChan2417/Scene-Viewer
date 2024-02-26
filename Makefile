@@ -24,7 +24,8 @@ SOURCES = scene_viewer.cpp main.cpp scene_config.cpp libs/mcjp.cpp \
 			implement/framebuffer.cpp	\
 			implement/vertexbuffer.cpp \
 			implement/depth_resources.cpp \
-			implement/texture.cpp
+			implement/texture.cpp \
+			implement/helper_command.cpp
 
 # 生成目标文件列表
 # OBJECTS = $(SOURCES:.cpp=.o)

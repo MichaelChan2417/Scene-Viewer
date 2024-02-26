@@ -18,10 +18,12 @@ void SceneViewer::createLogicalDevice() {
     }
 
     // physical device features
-    VkPhysicalDeviceFeatures deviceFeatures{};
+    VkPhysicalDeviceFeatures deviceFeatures {
+        .samplerAnisotropy = VK_TRUE,
+    };
 
     // logical device creation
-    VkDeviceCreateInfo createInfo{
+    VkDeviceCreateInfo createInfo {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
         .pQueueCreateInfos = queueCreateInfos.data(),

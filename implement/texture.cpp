@@ -1,9 +1,13 @@
 #include "../scene_viewer.hpp"
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 void SceneViewer::createTextureImage() {
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load("textures/bridge.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+    std::cout << "texture image size: " << texWidth << "x" << texHeight << std::endl;
 
     if (!pixels) {
         throw std::runtime_error("Failed to load texture image!");

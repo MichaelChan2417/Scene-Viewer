@@ -1,5 +1,6 @@
 # ignore resources folder
 resources
+textures
 
 # vscode
 .vscode

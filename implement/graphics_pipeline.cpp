@@ -3,7 +3,7 @@
 void SceneViewer::createGraphicsPipeline() {
     // using code to generate shader module
     std::vector<char> vertShaderCode = readFile("shaders/vert.spv");
-    std::vector<char> fragShaderCode = readFile("shaders/frag.spv");
+    std::vector<char> fragShaderCode = readFile("shaders/frag_env.spv");
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
