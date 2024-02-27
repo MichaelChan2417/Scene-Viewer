@@ -20,7 +20,7 @@ void SceneViewer::initVulkan() {
 
     createRenderPass();
     createDescriptorSetLayout();
-    createGraphicsPipeline();
+    createGraphicsPipelines();
     createCommandPool();
     createDepthResources();
     createFramebuffers();
@@ -136,9 +136,10 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
 
 void SceneViewer::loadCheck() {
     // initialize frame instances
-    // initialize frame_uniform_buffers
+    // TODO: if use material, we can delete this 2
     frame_instances.resize(MAX_FRAMES_IN_FLIGHT);
-    frame_uniform_buffers.resize(MAX_FRAMES_IN_FLIGHT);
+    frame_material_meshInnerId2ModelMatrices.resize(MAX_FRAMES_IN_FLIGHT);
+
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         // each frame basis is on each mesh, then insert instance
         frame_instances[i].resize(scene_config.id2mesh.size());
@@ -315,9 +316,11 @@ void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, doub
 
 void SceneViewer::setup_frame_instances(double inTime) {
     // start from root, make each dfs, using currentFrame
+    // TODO: instead
     for (int i = 0; i < scene_config.id2mesh.size(); i++) {
         frame_instances[currentFrame][i].clear();
     }
+    frame_material_meshInnerId2ModelMatrices[currentFrame].clear();
 
     cglm::Mat44f identity_m = cglm::identity(1.0f);
 
@@ -386,7 +389,11 @@ void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f paren
             continue;
         }
 
-        frame_instances[currentFrame][scene_config.id2mesh[mesh_id]->inner_id].push_back(curTransform);
+        // based on material & mesh, insert it
+        MaterialType materialType = scene_config.id2material[scene_config.id2mesh[mesh_id]->material_id]->matetial_type;
+        int inner_id = scene_config.id2mesh[mesh_id]->inner_id;
+        frame_material_meshInnerId2ModelMatrices[currentFrame][materialType][inner_id].push_back(curTransform);
+        frame_instances[currentFrame][inner_id].push_back(curTransform);
     }
 }
 

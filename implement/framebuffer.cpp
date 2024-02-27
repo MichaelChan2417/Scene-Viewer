@@ -138,9 +138,8 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     };
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    // bind graphics pipeline
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    VkViewport viewport {
+    // some pre-sets
+    VkViewport viewport{
         .x = 0.0f,
         .y = 0.0f,
         .width = static_cast<float>(swapChainExtent.width),
@@ -148,20 +147,28 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
     };
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
+    
     VkRect2D scissor{};
     scissor.offset = {0, 0};
     scissor.extent = swapChainExtent;
 
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
     VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+    // bind graphics pipeline -> multiple times
+    for (auto& pair : material2Pipelines) {
+        MaterialType materialType = pair.first;
+        VkPipeline graphicsPipeline = pair.second;
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+        frameRealDraw(commandBuffer, materialType);
+    }
     
+
     // this is actually drawing
     // vkCmdDraw(commandBuffer,
     //     static_cast<uint32_t>(frame_vertices_static[currentFrame].size() / 2),      /* Vertex Count */
@@ -169,7 +176,6 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     //     3,      /* First Vertex, defines lowest value of gl_VertexIndex */
     //     0       /* First Instance Index, defines lowest of gl_InstanceIndex */
     // );
-    frameRealDraw(commandBuffer);
 
     // if with index buffer
     // vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
@@ -277,38 +283,63 @@ void SceneViewer::framebufferResizeCallback(GLFWwindow* window, int width, int h
     app->framebufferResized = true;
 }
 
-void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer) {
-    // for each vertex, got all instance copy in this frame
-    std::vector<std::vector<cglm::Mat44f>> curFrameInstances = frame_instances[currentFrame];  // vector is mesh based
-    int curVertexIndex = 0;
-    int curInstanceIndex = 0;
-    
-    // this is also the number of vertices
-    for (size_t i = 0; i < curFrameInstances.size(); i++) {
-        // for each mesh, draw the instance vertexs
-        int meshId = scene_config.innerId2meshId[i];
-        int vertexCount = scene_config.id2mesh[meshId]->vertex_count;
-        int nextVertexIndex = curVertexIndex + vertexCount;
+void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, MaterialType materialType) {
 
-        int numInstances = curFrameInstances[i].size();
+    auto& meshInnerId2ModelMatrices = frame_material_meshInnerId2ModelMatrices[currentFrame][materialType];
+
+    // for each mesh, draw the instance vertexs
+    int curInstanceIndex = 0;
+
+    for (auto& p : meshInnerId2ModelMatrices) {
+        int meshInnerId = p.first;
+        auto& modelMatrices = p.second;
+        int vertexCount = scene_config.id2mesh[meshInnerId]->vertex_count;
+        int numInstances = modelMatrices.size();
+        // vertexIndex is the offset
+        int vertexIndex = meshInnerId2Offset[meshInnerId];
+        
         if (numInstances == 0) {
-            curVertexIndex = nextVertexIndex;
             continue;
         }
-
         vkCmdDraw(commandBuffer,
             static_cast<uint32_t>(vertexCount),      /* Vertex Count */
             numInstances,           /* Instance Count */
-            curVertexIndex,         /* First Vertex, defines lowest value of gl_VertexIndex */
+            vertexIndex,            /* First Vertex, defines lowest value of gl_VertexIndex */
             curInstanceIndex        /* First Instance Index, defines lowest of gl_InstanceIndex */
         );
-
-        // std::cout << "Draw mesh: " << scene_config.id2mesh[meshId]->name << " with " << numInstances << " instances";
-        // std::cout << " from vertex " << curVertexIndex << " to " << nextVertexIndex << std::endl;
-
-        curVertexIndex = nextVertexIndex;
         curInstanceIndex += numInstances;
     }
 
-    // std::cout << curInstanceIndex << " instances drawn" << std::endl;
+    // // for each vertex, got all instance copy in this frame
+    // std::vector<std::vector<cglm::Mat44f>> curFrameInstances = frame_instances[currentFrame];  // vector is mesh based
+    // int curVertexIndex = 0;
+    // int curInstanceIndex = 0;
+    
+    // // this is also the number of vertices
+    // for (size_t i = 0; i < curFrameInstances.size(); i++) {
+    //     // for each mesh, draw the instance vertexs
+    //     int meshId = scene_config.innerId2meshId[i];
+    //     int vertexCount = scene_config.id2mesh[meshId]->vertex_count;
+    //     int nextVertexIndex = curVertexIndex + vertexCount;
+
+    //     int numInstances = curFrameInstances[i].size();
+    //     if (numInstances == 0) {
+    //         curVertexIndex = nextVertexIndex;
+    //         continue;
+    //     }
+    //     vkCmdDraw(commandBuffer,
+    //         static_cast<uint32_t>(vertexCount),      /* Vertex Count */
+    //         numInstances,           /* Instance Count */
+    //         curVertexIndex,         /* First Vertex, defines lowest value of gl_VertexIndex */
+    //         curInstanceIndex        /* First Instance Index, defines lowest of gl_InstanceIndex */
+    //     );
+    //     // std::cout << "Draw mesh: " << scene_config.id2mesh[meshId]->name << " with " << numInstances << " instances";
+    //     // std::cout << " from vertex " << curVertexIndex << " to " << nextVertexIndex << std::endl;
+    //     curVertexIndex = nextVertexIndex;
+    //     curInstanceIndex += numInstances;
+    // }
+
+    // // std::cout << curInstanceIndex << " instances drawn" << std::endl;
+
+
 }

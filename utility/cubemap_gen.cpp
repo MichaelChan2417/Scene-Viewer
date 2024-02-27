@@ -28,13 +28,13 @@ float luminance(float r, float g, float b) {
 
 int main(int argc, char** argv) {
     // format is: ./cube in.png --lambertian out.png
-    if (argc != 4) {
-        std::cerr << "Usage: " << argv[0] << " <in.png> --[mode] <out.png>" << std::endl;
+    if (argc != 3) {
+        std::cerr << "Usage: ./cube <in.png> --[mode]" << std::endl;
         return 1;
     }
 
     std::string in_file = argv[1];
-    std::string out_file = argv[3];
+    std::string out_file;
     std::string mode(argv[2]);
     mode = mode.substr(2);
 
@@ -58,11 +58,15 @@ int main(int argc, char** argv) {
     unsigned char* output_data = new unsigned char[WIDTH * WIDTH * 6 * 4];
 
     if (mode == "lambertian") {
+        out_file = "out.lambertian.png";
         parse_lambertian(image_data, output_data, width, height);
     }
 
     // clean resources
     stbi_image_free(image_data);
+    stbi_write_png(out_file.c_str(), WIDTH, WIDTH * 6, 4, output_data, WIDTH * 4);
+
+    delete[] output_data;
 }
 
 void parse_lambertian(unsigned char* image_data, unsigned char* output_data, int width, int height) {

@@ -1,9 +1,36 @@
 #include "../scene_viewer.hpp"
 
-void SceneViewer::createGraphicsPipeline() {
+void SceneViewer::createGraphicsPipelines() {
+    // based on scene_config's materials
+    for (auto& pair : scene_config.id2material) {
+        std::shared_ptr<sconfig::Material> material = pair.second;
+        createGraphicsPipeline(material->matetial_type);
+    }
+}
+
+void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
     // using code to generate shader module
     std::vector<char> vertShaderCode = readFile("shaders/vert.spv");
-    std::vector<char> fragShaderCode = readFile("shaders/frag_env.spv");
+    std::vector<char> fragShaderCode;
+    switch (material_type)
+    {
+    case MaterialType::pbr:
+        fragShaderCode = readFile("shaders/frag_simple.spv"); // TODO: change to pbr shader
+        break;
+    case MaterialType::lambertian:
+        fragShaderCode = readFile("shaders/frag_simple.spv"); // TODO: change to lambertian shader
+        break;
+    case MaterialType::mirror:
+        fragShaderCode = readFile("shaders/frag_simple.spv"); // TODO: change to mirror shader
+        break;
+    case MaterialType::environment:
+        fragShaderCode = readFile("shaders/frag_env.spv");
+        break;
+    case MaterialType::simple:
+        fragShaderCode = readFile("shaders/frag_simple.spv");
+        break;
+    }
+
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
@@ -136,7 +163,33 @@ void SceneViewer::createGraphicsPipeline() {
         .basePipelineHandle = VK_NULL_HANDLE,
     };
 
-    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+    VkPipeline* selected_pipeline;
+    // TODO: 这里会不会有问题？？？ map并没有初始化指定位置的值
+    switch (material_type)
+    {
+    case MaterialType::pbr:
+        material2Pipelines[MaterialType::pbr] = *selected_pipeline;
+        selected_pipeline = &material2Pipelines[MaterialType::pbr];
+        break;
+    case MaterialType::lambertian:
+        material2Pipelines[MaterialType::lambertian] = *selected_pipeline;
+        selected_pipeline = &material2Pipelines[MaterialType::lambertian];
+        break;
+    case MaterialType::mirror:
+        material2Pipelines[MaterialType::mirror] = *selected_pipeline;
+        selected_pipeline = &material2Pipelines[MaterialType::mirror];
+        break;
+    case MaterialType::environment:
+        material2Pipelines[MaterialType::environment] = *selected_pipeline;
+        selected_pipeline = &material2Pipelines[MaterialType::environment];
+        break;
+    case MaterialType::simple:
+        material2Pipelines[MaterialType::simple] = *selected_pipeline;
+        selected_pipeline = &material2Pipelines[MaterialType::simple];
+        break;
+    }
+
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, selected_pipeline) != VK_SUCCESS) {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
 

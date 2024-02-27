@@ -4,11 +4,11 @@ void SceneViewer::createImageViews() {
     swapChainImageViews.resize(swapChainImages.size());
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
-        swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);        
+        swapChainImageViews[i] = createImageView2D(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);        
     }
 }
 
-VkImageView SceneViewer::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+VkImageView SceneViewer::createImageView2D(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
     VkImageViewCreateInfo viewInfo{
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image = image,
@@ -31,14 +31,37 @@ VkImageView SceneViewer::createImageView(VkImage image, VkFormat format, VkImage
     return imageView;
 }
 
-void SceneViewer::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
+VkImageView SceneViewer::createImageViewCube(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+    VkImageViewCreateInfo viewInfo{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = image,
+        .viewType = VK_IMAGE_VIEW_TYPE_CUBE,
+        .format = format,
+        .subresourceRange = {
+            .aspectMask = aspectFlags,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 6,
+        },
+    };
+
+    VkImageView imageView;
+    if (vkCreateImageView(device, &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create image view!");
+    }
+
+    return imageView;
+}
+
+void SceneViewer::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, int layers) {
     VkImageCreateInfo imageInfo{
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .imageType = VK_IMAGE_TYPE_2D,
         .format = format,
         .extent = {width, height, 1},
         .mipLevels = 1,
-        .arrayLayers = 1,
+        .arrayLayers = static_cast<uint32_t>(layers),
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .tiling = tiling,
         .usage = usage,
@@ -137,6 +160,18 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
     for (auto& mesh_instances : frame_instances[currentFrame]) {
         for (auto& model_matrix : mesh_instances) {
             ubo.instanceModels[idx++] = model_matrix;
+        }
+    }
+
+    // now instead, we have great frame_material_meshInnerId2ModelMatrices
+    auto& cur_frame_material_meshInnerId2ModelMatrices = frame_material_meshInnerId2ModelMatrices[currentFrame];
+    for (auto& pair : cur_frame_material_meshInnerId2ModelMatrices) {
+        // here, I just need to add matrices inorder. Draw takes care of realthings
+        auto& meshId2ModelMatrices = pair.second;
+        for (auto& p : meshId2ModelMatrices) {
+            for (auto& model_matrix : p.second) {
+                ubo.instanceModels[idx++] = model_matrix;
+            }
         }
     }
 

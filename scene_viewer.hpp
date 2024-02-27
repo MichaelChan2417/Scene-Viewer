@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <chrono>
+#include <map>
 
 #include "scene_config.hpp"
 
@@ -160,8 +161,9 @@ public:
     VkExtent2D swapChainExtent;             // extent of the swap chain image
     std::vector<VkImageView> swapChainImageViews;
     VkRenderPass renderPass;
-    VkPipelineLayout pipelineLayout;
+    VkPipelineLayout pipelineLayout;        // TODO: can we use single layout for multiple pipelines?
     VkPipeline graphicsPipeline;
+    std::map<MaterialType, VkPipeline> material2Pipelines;
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
@@ -212,7 +214,8 @@ public:
     bool animationPlay = false;
 
     std::vector<std::vector<std::vector<cglm::Mat44f>>> frame_instances;
-    std::vector<std::vector<cglm::Mat44f>> frame_uniform_buffers;  // index is instance_id, value is model matrix
+    std::unordered_map<int, int> meshInnerId2Offset;
+    std::vector<std::map<MaterialType, std::map<int, std::vector<cglm::Mat44f>>>> frame_material_meshInnerId2ModelMatrices; // this is used for drawing
 
     // interfaces
     void initWindow();
@@ -282,19 +285,21 @@ public:
     void drawFrame();
     void drawHeadlessFrame();
     void createSyncObjects();
-    void frameRealDraw(VkCommandBuffer commandBuffer);
+    void frameRealDraw(VkCommandBuffer commandBuffer, MaterialType mt);
     void headlessFrameFetch();
 
     // graphics pipeline
-    void createGraphicsPipeline();
+    void createGraphicsPipeline(MaterialType mt);
+    void createGraphicsPipelines();
     VkShaderModule createShaderModule(const std::vector<char>& code);
     void createRenderPass();
     void createHeadlessRenderPass();
 
     // image views
     void createImageViews();
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+    VkImageView createImageView2D(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+    VkImageView createImageViewCube(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, int layers);
 
     // swap chain
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);

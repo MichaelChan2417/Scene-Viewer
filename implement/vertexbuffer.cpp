@@ -33,6 +33,7 @@ void SceneViewer::copyAllMeshVertexToBuffer() {
                 .color = meshPtr->colors[i],
             };
         }
+        meshInnerId2Offset[inner_id] = prev;
         prev += vertex_count;
     }
 

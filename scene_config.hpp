@@ -138,6 +138,7 @@ namespace sconfig {
     };
 
     struct Material {
+        int idx;
         std::string name;
 
         std::string normal_map;
@@ -163,11 +164,16 @@ namespace sconfig {
     struct SceneConfig {
         std::unordered_map<std::string, std::shared_ptr<Camera>> cameras;
         std::unordered_map<int, std::string> id2camera_name;
+
         std::unordered_map<int, std::shared_ptr<Mesh>> id2mesh;
         std::unordered_map<int, int> innerId2meshId;
+
         std::unordered_map<int, std::shared_ptr<Instance>> id2instance;
+
         std::unordered_map<int, std::shared_ptr<Node>> id2node;
+
         std::unordered_map<std::string, std::shared_ptr<Driver>> name2driver;
+        
         std::unordered_map<int, std::shared_ptr<Material>> id2material;
         std::set<std::string> texture_set;
 
