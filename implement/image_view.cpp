@@ -54,10 +54,11 @@ VkImageView SceneViewer::createImageViewCube(VkImage image, VkFormat format, VkI
     return imageView;
 }
 
-void SceneViewer::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, int layers) {
-    VkImageCreateInfo imageInfo{
+void SceneViewer::createImage(uint32_t width, uint32_t height, VkImageCreateFlags flags, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, int layers) {
+    VkImageCreateInfo imageInfo {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .imageType = VK_IMAGE_TYPE_2D,
+        .flags = flags,
+        .imageType = imageType,
         .format = format,
         .extent = {width, height, 1},
         .mipLevels = 1,

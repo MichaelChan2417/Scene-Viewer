@@ -29,8 +29,6 @@ enum MaterialType {
     simple,
 };
 
-// TODO: currently not include SCENE
-
 namespace sconfig {
 
     struct Plane {

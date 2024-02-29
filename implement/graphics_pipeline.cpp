@@ -4,7 +4,12 @@ void SceneViewer::createGraphicsPipelines() {
     // based on scene_config's materials
     for (auto& pair : scene_config.id2material) {
         std::shared_ptr<sconfig::Material> material = pair.second;
-        createGraphicsPipeline(material->matetial_type);
+        MaterialType mt = material->matetial_type;
+        if (material2Pipelines.find(mt) != material2Pipelines.end()) {
+            std::cout << "Pipeline already exists" << std::endl;
+            continue;
+        }
+        createGraphicsPipeline(mt);
     }
 }
 
@@ -163,28 +168,27 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
         .basePipelineHandle = VK_NULL_HANDLE,
     };
 
-    VkPipeline* selected_pipeline;
-    // TODO: 这里会不会有问题？？？ map并没有初始化指定位置的值
+    VkPipeline* selected_pipeline = nullptr;
     switch (material_type)
     {
     case MaterialType::pbr:
-        material2Pipelines[MaterialType::pbr] = *selected_pipeline;
+        material2Pipelines[MaterialType::pbr] = nullptr;
         selected_pipeline = &material2Pipelines[MaterialType::pbr];
         break;
     case MaterialType::lambertian:
-        material2Pipelines[MaterialType::lambertian] = *selected_pipeline;
+        material2Pipelines[MaterialType::lambertian] = nullptr;
         selected_pipeline = &material2Pipelines[MaterialType::lambertian];
         break;
     case MaterialType::mirror:
-        material2Pipelines[MaterialType::mirror] = *selected_pipeline;
+        material2Pipelines[MaterialType::mirror] = nullptr;
         selected_pipeline = &material2Pipelines[MaterialType::mirror];
         break;
     case MaterialType::environment:
-        material2Pipelines[MaterialType::environment] = *selected_pipeline;
+        material2Pipelines[MaterialType::environment] = nullptr;
         selected_pipeline = &material2Pipelines[MaterialType::environment];
         break;
     case MaterialType::simple:
-        material2Pipelines[MaterialType::simple] = *selected_pipeline;
+        material2Pipelines[MaterialType::simple] = nullptr;
         selected_pipeline = &material2Pipelines[MaterialType::simple];
         break;
     }

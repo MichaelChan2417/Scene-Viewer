@@ -10,20 +10,33 @@ double SceneViewer::lastYPos;
 
 void SceneViewer::initVulkan() {
     createInstance();
+    std::cout << "1" << std::endl;
     setupDebugMessenger();
+    std::cout << "2" << std::endl;
     createSurface();
+    std::cout << "3" << std::endl;
     pickPhysicalDevice();
+    std::cout << "4" << std::endl;
     createLogicalDevice();
+    std::cout << "5" << std::endl;
 
     createSwapChain();
+    std::cout << "6" << std::endl;
     createImageViews();
+    std::cout << "7" << std::endl;
 
     createRenderPass();
+    std::cout << "8" << std::endl;
     createDescriptorSetLayout();
+    std::cout << "9" << std::endl;
     createGraphicsPipelines();
+    std::cout << "10" << std::endl;
     createCommandPool();
+    std::cout << "11" << std::endl;
     createDepthResources();
+    std::cout << "12" << std::endl;
     createFramebuffers();
+    std::cout << "13" << std::endl;
 
     createTextureImage();
     createTextureImageView();
@@ -390,9 +403,12 @@ void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f paren
         }
 
         // based on material & mesh, insert it
-        MaterialType materialType = scene_config.id2material[scene_config.id2mesh[mesh_id]->material_id]->matetial_type;
+        int material_id = scene_config.id2mesh[mesh_id]->material_id;
+        // std::cout << "Material Id: " << material_id << std::endl;
+        MaterialType materialType = scene_config.id2material[material_id]->matetial_type;
         int inner_id = scene_config.id2mesh[mesh_id]->inner_id;
         frame_material_meshInnerId2ModelMatrices[currentFrame][materialType][inner_id].push_back(curTransform);
+        // std::cout << "Material " << materialType << " InnerId " << inner_id << std::endl;
         frame_instances[currentFrame][inner_id].push_back(curTransform);
     }
 }

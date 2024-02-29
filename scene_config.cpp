@@ -458,6 +458,11 @@ namespace sconfig {
         // initialize parameters
         this->cur_instance = 0;
         this->cur_mesh = 0;
+        // default material is simple
+        std::shared_ptr<Material> materialPtr = std::make_shared<Material>();
+        materialPtr->name = "_default_simple";
+        materialPtr->matetial_type = MaterialType::simple;
+        id2material[-1] = materialPtr;
 
         size_t n = objects.size();
 
@@ -490,6 +495,7 @@ namespace sconfig {
             }
             else if (type == "material" || type == "MATERIAL") {
                 std::shared_ptr<Material> materialPtr = generateMaterial(obj);
+                materialPtr->idx = static_cast<int>(i);
                 id2material[i] = materialPtr;
                 // TODO: remember to add texture to set in later stage
             }

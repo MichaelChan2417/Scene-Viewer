@@ -2,6 +2,7 @@
 
 void SceneViewer::createVertexBuffer() {
     VkDeviceSize bufferSize = sizeof(Vertex) * scene_config.get_mesh_vertex_count();
+    std::cout << "Vertex buffer size: " << scene_config.get_mesh_vertex_count() << std::endl;
     createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBuffer, vertexBufferMemory);
 }
 

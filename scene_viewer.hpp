@@ -239,7 +239,7 @@ public:
     void copyToDstImage();
     VkCommandBuffer beginSingleTimeCommands();
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
 
     void createInstance();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
@@ -253,7 +253,7 @@ public:
 
     // texture
     void createTextureImage();
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount);
     void createTextureImageView();
     void createTextureSampler();
 
@@ -299,7 +299,7 @@ public:
     void createImageViews();
     VkImageView createImageView2D(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
     VkImageView createImageViewCube(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, int layers);
+    void createImage(uint32_t width, uint32_t height, VkImageCreateFlags flags, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, int layers);
 
     // swap chain
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);

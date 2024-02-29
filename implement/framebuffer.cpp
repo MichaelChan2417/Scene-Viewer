@@ -286,18 +286,18 @@ void SceneViewer::framebufferResizeCallback(GLFWwindow* window, int width, int h
 void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, MaterialType materialType) {
 
     auto& meshInnerId2ModelMatrices = frame_material_meshInnerId2ModelMatrices[currentFrame][materialType];
-
     // for each mesh, draw the instance vertexs
     int curInstanceIndex = 0;
 
     for (auto& p : meshInnerId2ModelMatrices) {
         int meshInnerId = p.first;
         auto& modelMatrices = p.second;
-        int vertexCount = scene_config.id2mesh[meshInnerId]->vertex_count;
+        int meshId = scene_config.innerId2meshId[meshInnerId];
+        int vertexCount = scene_config.id2mesh[meshId]->vertex_count;
         int numInstances = modelMatrices.size();
         // vertexIndex is the offset
         int vertexIndex = meshInnerId2Offset[meshInnerId];
-        
+
         if (numInstances == 0) {
             continue;
         }
@@ -338,8 +338,5 @@ void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, MaterialType mate
     //     curVertexIndex = nextVertexIndex;
     //     curInstanceIndex += numInstances;
     // }
-
-    // // std::cout << curInstanceIndex << " instances drawn" << std::endl;
-
 
 }
