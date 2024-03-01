@@ -102,14 +102,14 @@ void SceneViewer::createDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding samplerLayoutBinding {
         .binding = 1,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = 1,
+        .descriptorCount = 1,       // the real binding count is the number of textures
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .pImmutableSamplers = nullptr,
     };
 
     std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
     
-    VkDescriptorSetLayoutCreateInfo layoutInfo{
+    VkDescriptorSetLayoutCreateInfo layoutInfo {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
         .bindingCount = static_cast<uint32_t>(bindings.size()),
         .pBindings = bindings.data(),
@@ -136,10 +136,11 @@ void SceneViewer::createUniformBuffers() {
 
 void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
 
-    // auto currentTime = std::chrono::high_resolution_clock::now();
-    // float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
     UniformBufferObject ubo{};
+
+    // assign cameraPos
+    ubo.cameraPos = scene_config.cameras[scene_config.cur_camera]->position;
+    
     // ubo.model = cglm::rotate({0.0f, 1.0f, 0.0f}, time * cglm::to_radians(0.0f));
     ubo.model = cglm::identity(1.0f);
 
@@ -158,11 +159,6 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
     // ubo.proj[1][1] *= -1;
 
     int idx = 0;
-    for (auto& mesh_instances : frame_instances[currentFrame]) {
-        for (auto& model_matrix : mesh_instances) {
-            ubo.instanceModels[idx++] = model_matrix;
-        }
-    }
 
     // now instead, we have great frame_material_meshInnerId2ModelMatrices
     auto& cur_frame_material_meshInnerId2ModelMatrices = frame_material_meshInnerId2ModelMatrices[currentFrame];

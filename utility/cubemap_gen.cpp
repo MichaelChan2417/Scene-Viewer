@@ -117,7 +117,7 @@ void parse_lambertian(unsigned char* image_data, unsigned char* output_data, int
                 output_data[idx + 3] = static_cast<unsigned char>(res.a);
 
                 // print to check
-                std::cout << res.r << " " << res.g << " " << res.b << " " << res.a << std::endl;
+                // std::cout << res.r << " " << res.g << " " << res.b << " " << res.a << std::endl;
             }
         }
     }
@@ -128,6 +128,8 @@ void parse_lambertian(unsigned char* image_data, unsigned char* output_data, int
 glm::vec4 hemi_integrate(unsigned char* image_data, int width, int height, glm::vec3& normal) {
     glm::vec3 result(0.0f);
     int count = 0;
+
+    normal = glm::normalize(normal);
 
     float halfWidth = 0.5f * width;
     // image_data's height is 6 * width for cubemap
@@ -162,6 +164,7 @@ glm::vec4 hemi_integrate(unsigned char* image_data, int width, int height, glm::
                 }
 
                 // calculate the weight
+                dir = normalize(dir);
                 float weight = glm::dot(normal, dir);
                 if (weight > 0.0f) {
                     // get the pixel value
@@ -188,7 +191,7 @@ glm::vec4 hemi_integrate(unsigned char* image_data, int width, int height, glm::
         return glm::vec4(0.0f);
     }
 
-    int exp = static_cast<int>(std::floor(std::log2(maxv)));
+    int exp = static_cast<int>(std::ceil(std::log2(maxv)));
     float scale = std::pow(2.0f, -exp);
     result *= scale;
     result = glm::round(result * 255.0f);

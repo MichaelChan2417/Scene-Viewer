@@ -121,6 +121,28 @@ namespace sconfig {
         }
         else if (obj->contents.find("lambertian") != obj->contents.end()) {
             material->matetial_type = MaterialType::lambertian;
+            mcjp::Object* lamb = std::get<mcjp::Object*>(obj->contents.at("lambertian"));
+            auto& albedo = lamb->contents.at("albedo");
+            std::cout << "??0" << std::endl;
+
+            std::shared_ptr<Lambertian> lab_data = std::make_shared<Lambertian>();
+            lab_data->albedo_type = TextureType::texture2D;
+
+            if (lamb->contents.find("type") != lamb->contents.end()) {
+                std::string tp = std::get<std::string>(lamb->contents.at("type"));
+                if (tp == "cube") {
+                    lab_data->albedo_type = TextureType::textureCube;
+                }
+            }
+
+            if (std::holds_alternative<std::string>(albedo)) {
+                lab_data->albedo = std::get<std::string>(albedo);
+            }
+            else if (std::holds_alternative<std::vector<double>>(albedo)) {
+                lab_data->albedo = std::get<std::vector<double>>(albedo);
+            }
+
+            material->matetial_detail = lab_data;
         }
         else if (obj->contents.find("mirror") != obj->contents.end()) {
             material->matetial_type = MaterialType::mirror;
@@ -146,7 +168,14 @@ namespace sconfig {
         mcjp::Object* radiance = std::get<mcjp::Object*>(obj->contents.at("radiance"));
 
         environment->texture_src = std::get<std::string>(radiance->contents.at("src"));
-        environment->texture_type = std::get<std::string>(radiance->contents.at("type"));
+        std::string env_tp = std::get<std::string>(radiance->contents.at("type"));
+        if (env_tp == "cube") {
+            environment->env_type = TextureType::textureCube;
+        }
+        else if (env_tp == "2D") {
+            environment->env_type = TextureType::texture2D;
+        }
+
         environment->texture_format = std::get<std::string>(radiance->contents.at("format"));
 
         return environment;
@@ -497,12 +526,10 @@ namespace sconfig {
                 std::shared_ptr<Material> materialPtr = generateMaterial(obj);
                 materialPtr->idx = static_cast<int>(i);
                 id2material[i] = materialPtr;
-                // TODO: remember to add texture to set in later stage
             }
             else if (type == "environment" || type == "ENVIRONMENT") {
                 environment = generateEnvironment(obj);
                 // adding texture to set
-                texture_set.insert(environment->texture_src);
             }
 
             if (cameras["debug"] == nullptr) {

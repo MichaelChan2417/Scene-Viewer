@@ -2,6 +2,11 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
+void generateSinglePixel(std::vector<double>& val, std::string& file_name);
+
 void SceneViewer::createTextureImage() {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load("textures/bridge.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -70,4 +75,47 @@ void SceneViewer::createTextureSampler() {
     if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture sampler!");
     }
+}
+
+
+void SceneViewer::texturePrepare() {
+    // first is environment
+    std::shared_ptr<sconfig::Environment> env = scene_config.environment;
+    scene_config.textureCube2Idx[env->name] = scene_config.textureCube2Idx.size();
+
+    // then is a environment light sampler
+    std::cout << "ABC" << std::endl;
+
+    // then for all materials => load texture
+    for (auto& [id, mat] : scene_config.id2material) {
+
+        if (mat->matetial_type == MaterialType::lambertian) {
+            std::shared_ptr<sconfig::Lambertian> detail = std::get<std::shared_ptr<sconfig::Lambertian>>(mat->matetial_detail);
+            if (std::holds_alternative<std::vector<double>>(detail->albedo)) {
+                std::string temp_file_name = "temp\\lambertian_" + std::to_string(id) + "_albedo.png";
+                generateSinglePixel(std::get<std::vector<double>>(detail->albedo), temp_file_name);
+                detail->albedo = temp_file_name;
+                detail->albedo_type = TextureType::texture2D;
+            }
+            // now it's definitely a string (file)
+            if (detail->albedo_type == TextureType::texture2D) {
+                scene_config.texture2D2Idx[std::get<std::string>(detail->albedo)] = scene_config.texture2D2Idx.size();
+            }
+            else {
+                scene_config.textureCube2Idx[std::get<std::string>(detail->albedo)] = scene_config.textureCube2Idx.size();
+            }
+        }
+    }
+}
+
+
+void generateSinglePixel(std::vector<double>& val, std::string& file_name) {
+    stbi_uc* pixels = new stbi_uc[4];
+    pixels[0] = static_cast<stbi_uc>(val[0] * 255);
+    pixels[1] = static_cast<stbi_uc>(val[1] * 255);
+    pixels[2] = static_cast<stbi_uc>(val[2] * 255);
+    pixels[3] = 255;
+
+    stbi_write_png(file_name.c_str(), 1, 1, 4, pixels, 0);
+    delete[] pixels;
 }

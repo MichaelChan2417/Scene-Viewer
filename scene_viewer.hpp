@@ -35,8 +35,8 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
+    static std::vector<VkVertexInputAttributeDescription> getSimpleAttributeDescriptions() {
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(3);
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
         attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -49,17 +49,27 @@ struct Vertex {
         attributeDescriptions[2].location = 2;
         attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[2].offset = offsetof(Vertex, color);
-        attributeDescriptions[3].binding = 0;
-        attributeDescriptions[3].location = 3;
-        attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
+        return attributeDescriptions;
+    }
+
+    static std::vector<VkVertexInputAttributeDescription> getEnvAttributeDescriptions() {
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(2);
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, normal);
 
         return attributeDescriptions;
     }
 };
 
 struct UniformBufferObject {
-    cglm::Mat44f model;
+    cglm::Vec3f cameraPos;
+    alignas(16) cglm::Mat44f model;
     cglm::Mat44f view;
     cglm::Mat44f proj;
     cglm::Mat44f instanceModels[MAX_INSTANCE];
@@ -213,7 +223,6 @@ public:
     static double lastXPos, lastYPos;
     bool animationPlay = false;
 
-    std::vector<std::vector<std::vector<cglm::Mat44f>>> frame_instances;
     std::unordered_map<int, int> meshInnerId2Offset;
     std::vector<std::map<MaterialType, std::map<int, std::vector<cglm::Mat44f>>>> frame_material_meshInnerId2ModelMatrices; // this is used for drawing
 
@@ -256,6 +265,7 @@ public:
     void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layerCount);
     void createTextureImageView();
     void createTextureSampler();
+    void texturePrepare();
 
     // Uniform buffer
     void createDescriptorSetLayout();

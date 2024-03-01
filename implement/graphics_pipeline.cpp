@@ -15,7 +15,7 @@ void SceneViewer::createGraphicsPipelines() {
 
 void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
     // using code to generate shader module
-    std::vector<char> vertShaderCode = readFile("shaders/vert.spv");
+    std::vector<char> vertShaderCode;
     std::vector<char> fragShaderCode;
     switch (material_type)
     {
@@ -26,13 +26,16 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
         fragShaderCode = readFile("shaders/frag_simple.spv"); // TODO: change to lambertian shader
         break;
     case MaterialType::mirror:
-        fragShaderCode = readFile("shaders/frag_simple.spv"); // TODO: change to mirror shader
+        vertShaderCode = readFile("shaders/mirror/vert.spv");
+        fragShaderCode = readFile("shaders/mirror/frag.spv");
         break;
     case MaterialType::environment:
-        fragShaderCode = readFile("shaders/frag_env.spv");
+        vertShaderCode = readFile("shaders/env/vert.spv");
+        fragShaderCode = readFile("shaders/env/frag.spv");
         break;
     case MaterialType::simple:
-        fragShaderCode = readFile("shaders/frag_simple.spv");
+        vertShaderCode = readFile("shaders/simple/vert.spv");
+        fragShaderCode = readFile("shaders/simple/frag.spv");
         break;
     }
 
@@ -56,7 +59,17 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
 
     // vertex input
     auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+    std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
+
+    switch (material_type)
+    {
+    case MaterialType::environment:
+        attributeDescriptions = Vertex::getEnvAttributeDescriptions();
+        break;
+    case MaterialType::simple:
+        attributeDescriptions = Vertex::getSimpleAttributeDescriptions();
+        break;
+    }
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,

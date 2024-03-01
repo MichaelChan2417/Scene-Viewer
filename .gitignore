@@ -1,6 +1,11 @@
+# no images
+*.png
+*.jpg
+
 # ignore resources folder
 resources
 textures
+temp
 
 # vscode
 .vscode

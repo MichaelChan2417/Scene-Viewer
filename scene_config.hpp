@@ -29,6 +29,11 @@ enum MaterialType {
     simple,
 };
 
+enum TextureType {
+    texture2D,
+    textureCube,
+};
+
 namespace sconfig {
 
     struct Plane {
@@ -125,14 +130,18 @@ namespace sconfig {
     };
 
 
-    struct pbr {
+    struct Pbr {
         std::variant < std::vector<double>, std::string > albedo;
+        TextureType albedo_type;
         std::variant < double, std::string > roughness;
+        TextureType roughness_type;
         std::variant < double, std::string > metalness;
+        TextureType metalness_type;
     };
 
-    struct lambertian {
+    struct Lambertian {
         std::variant < std::vector<double>, std::string > albedo;
+        TextureType albedo_type;
     };
 
     struct Material {
@@ -143,14 +152,14 @@ namespace sconfig {
         std::string displacement_map;
 
         MaterialType matetial_type;
-        std::variant < pbr, lambertian > matetial_detail;
+        std::variant < std::shared_ptr<Pbr>, std::shared_ptr<Lambertian> > matetial_detail;
     };
 
     struct Environment {
         std::string name;
 
         std::string texture_src;
-        std::string texture_type;
+        TextureType env_type;
         std::string texture_format;
     };
 
@@ -173,7 +182,9 @@ namespace sconfig {
         std::unordered_map<std::string, std::shared_ptr<Driver>> name2driver;
         
         std::unordered_map<int, std::shared_ptr<Material>> id2material;
-        std::set<std::string> texture_set;
+
+        std::unordered_map<std::string, int> texture2D2Idx;   // this is useful for descriptor set generate
+        std::unordered_map<std::string, int> textureCube2Idx;   // this is useful for descriptor set generate
 
         std::shared_ptr<Scene> scene;
         std::shared_ptr<Environment> environment;

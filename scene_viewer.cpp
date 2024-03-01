@@ -149,14 +149,9 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
 
 void SceneViewer::loadCheck() {
     // initialize frame instances
-    // TODO: if use material, we can delete this 2
-    frame_instances.resize(MAX_FRAMES_IN_FLIGHT);
     frame_material_meshInnerId2ModelMatrices.resize(MAX_FRAMES_IN_FLIGHT);
 
-    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        // each frame basis is on each mesh, then insert instance
-        frame_instances[i].resize(scene_config.id2mesh.size());
-    }
+    texturePrepare();
 
     std::cout << "In loadCheck(), we have " << scene_config.id2instance.size() << " instances" << std::endl;
 
@@ -329,10 +324,6 @@ void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, doub
 
 void SceneViewer::setup_frame_instances(double inTime) {
     // start from root, make each dfs, using currentFrame
-    // TODO: instead
-    for (int i = 0; i < scene_config.id2mesh.size(); i++) {
-        frame_instances[currentFrame][i].clear();
-    }
     frame_material_meshInnerId2ModelMatrices[currentFrame].clear();
 
     cglm::Mat44f identity_m = cglm::identity(1.0f);
@@ -409,7 +400,6 @@ void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f paren
         int inner_id = scene_config.id2mesh[mesh_id]->inner_id;
         frame_material_meshInnerId2ModelMatrices[currentFrame][materialType][inner_id].push_back(curTransform);
         // std::cout << "Material " << materialType << " InnerId " << inner_id << std::endl;
-        frame_instances[currentFrame][inner_id].push_back(curTransform);
     }
 }
 

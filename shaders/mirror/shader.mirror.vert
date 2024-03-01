@@ -13,12 +13,15 @@ layout(binding = 0) uniform UniformBufferObject {
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 
-layout(location = 0) out vec3 fragNormal;
+layout(location = 0) out vec3 fragTrack;
 
 void main() {
     mat4 normalMatrix = transpose(inverse(ubo.instanceModels[gl_InstanceIndex]));
-    gl_Position = ubo.proj * ubo.view * ubo.instanceModels[gl_InstanceIndex] * vec4(inPosition, 1.0);
+    vec4 tr_pos = ubo.instanceModels[gl_InstanceIndex] * vec4(inPosition, 1.0);
+
+    gl_Position = ubo.proj * ubo.view * tr_pos;
 
     vec3 rNormal = mat3(normalMatrix) * inNormal;
-    fragNormal = rNormal;
+    vec3 in_dir = tr_pos.xyz - ubo.cameraPos;
+    fragTrack = reflect(in_dir, rNormal);
 }
