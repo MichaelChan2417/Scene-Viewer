@@ -83,7 +83,7 @@ void SceneViewer::texturePrepare() {
     std::shared_ptr<sconfig::Environment> env = scene_config.environment;
     scene_config.textureCube2Idx[env->name] = scene_config.textureCube2Idx.size();
 
-    // then is a environment light sampler
+    // TODO: then is a environment light sampler
     std::cout << "ABC" << std::endl;
 
     // then for all materials => load texture
@@ -106,6 +106,20 @@ void SceneViewer::texturePrepare() {
             }
         }
     }
+
+    std::cout << "2D has size " << scene_config.texture2D2Idx.size() << " and cube has size " << scene_config.textureCube2Idx.size() << std::endl;
+
+    // then resize the texture2D and textureCube
+    int tex2DCount = scene_config.texture2D2Idx.size();
+    int texCubeCount = scene_config.textureCube2Idx.size();
+
+    texture2DImages.resize(tex2DCount);
+    texture2DImageMemorys.resize(tex2DCount);
+    texture2DImageViews.resize(tex2DCount);
+
+    textureCubeImages.resize(texCubeCount);
+    textureCubeImageMemorys.resize(texCubeCount);
+    textureCubeImageViews.resize(texCubeCount);
 }
 
 

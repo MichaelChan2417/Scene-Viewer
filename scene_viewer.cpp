@@ -57,10 +57,28 @@ void SceneViewer::cleanup() {
 
     cleanupSwapChain();
     
-    vkDestroySampler(device, textureSampler, nullptr);
-    vkDestroyImageView(device, textureImageView, nullptr);
-    vkDestroyImage(device, textureImage, nullptr);
-    vkFreeMemory(device, textureImageMemory, nullptr);
+    vkDestroySampler(device, textureSampler2D, nullptr);
+    vkDestroySampler(device, textureSamplerCube, nullptr);
+
+    for (auto& imageView : texture2DImageViews) {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
+    for (auto& image : texture2DImages) {
+        vkDestroyImage(device, image, nullptr);
+    }
+    for (auto& memory : texture2DImageMemorys) {
+        vkFreeMemory(device, memory, nullptr);
+    }
+
+    for (auto& imageView : textureCubeImageViews) {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
+    for (auto& image : textureCubeImages) {
+        vkDestroyImage(device, image, nullptr);
+    }
+    for (auto& memory : textureCubeImageMemorys) {
+        vkFreeMemory(device, memory, nullptr);
+    }
 
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);

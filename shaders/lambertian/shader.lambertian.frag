@@ -17,7 +17,7 @@ vec3 decodeRGBE(vec4 rgbe)
 }
 
 void main() {
-    vec4 rgbeColor = texture(texCubeSampler[0], fragNormal);
+    vec4 rgbeColor = texture(texCubeSampler, fragNormal);
     vec3 decodedColor = decodeRGBE(rgbeColor);
     outColor = vec4(decodedColor, 1.0);
 }

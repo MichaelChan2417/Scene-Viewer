@@ -199,10 +199,14 @@ public:
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
 
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
-    VkSampler textureSampler;
+    std::vector<VkImage> texture2DImages;
+    std::vector<VkImage> textureCubeImages;
+    std::vector<VkDeviceMemory> texture2DImageMemorys;
+    std::vector<VkDeviceMemory> textureCubeImageMemorys;
+    std::vector<VkImageView> texture2DImageViews;
+    std::vector<VkImageView> textureCubeImageViews;
+    VkSampler textureSampler2D;
+    VkSampler textureSamplerCube;
 
     // VkBuffer stagingBuffer;
     // VkDeviceMemory stagingBufferMemory; 

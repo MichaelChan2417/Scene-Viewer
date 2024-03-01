@@ -99,15 +99,23 @@ void SceneViewer::createDescriptorSetLayout() {
         .pImmutableSamplers = nullptr,
     };
 
-    VkDescriptorSetLayoutBinding samplerLayoutBinding {
+    VkDescriptorSetLayoutBinding sampler2DLayoutBinding {
         .binding = 1,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = 1,       // the real binding count is the number of textures
+        .descriptorCount = MAX_INSTANCE,       // the real binding count is the number of textures
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .pImmutableSamplers = nullptr,
     };
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
+    VkDescriptorSetLayoutBinding samplerCubeLayoutBinding {
+        .binding = 2,
+        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = MAX_INSTANCE,       // the real binding count is the number of textures
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .pImmutableSamplers = nullptr,
+    };
+
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, sampler2DLayoutBinding, samplerCubeLayoutBinding};
     
     VkDescriptorSetLayoutCreateInfo layoutInfo {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -226,7 +234,7 @@ void SceneViewer::createDescriptorSets() {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         };
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
         descriptorWrites[0] = {
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -243,9 +251,19 @@ void SceneViewer::createDescriptorSets() {
             .dstSet = descriptorSets[i],
             .dstBinding = 1,
             .dstArrayElement = 0,
-            .descriptorCount = 1,
+            .descriptorCount = 1,   // TODO: to be updated with imageInfo's size (2D)
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .pImageInfo = &imageInfo,
+            .pImageInfo = &imageInfo,   // TODO: to be updated with imageInfo (2D)
+        };
+
+        descriptorWrites[2] = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = descriptorSets[i],
+            .dstBinding = 2,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,   // TODO: to be updated with imageInfo's size (Cube)
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo = &imageInfo,   // TODO: to be updated with imageInfo (Cube)
         };
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
