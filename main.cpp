@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
 
     // handling arguments
     int w = 0, h = 0;
-    std::string scene_file, camera_name = "debug", device_name, events, culling = "none";
+    std::string scene_file, camera_name = "debug", device_name = "", events = "", culling = "none";
     bool list_devices = false;
     parse_arguments(argc, argv, w, h, scene_file, camera_name, device_name, events, list_devices, culling);
 
@@ -31,7 +31,12 @@ int main(int argc, char* argv[]) {
 
     // main call
     try {
-        scene_viewer.run();
+        if (events.empty()) {
+            scene_viewer.run();
+        }
+        else {
+            scene_viewer.run_headless(events);
+        }
     } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
@@ -90,8 +95,12 @@ void parse_arguments(int argc, char* argv[], int& w, int& h, std::string& scene_
             ++i;
         }
         else if (arg == "--physical-device") {
-            device_name = argv[i + 1];
-            ++i;
+            while (i + 1 < argc && argv[i + 1][0] != '-') {
+                device_name += argv[i + 1];
+                device_name += " ";
+                ++i;
+            }
+            device_name.pop_back();
         }
         else if (arg == "--drawing-size") {
             w = std::stoi(argv[i + 1]);

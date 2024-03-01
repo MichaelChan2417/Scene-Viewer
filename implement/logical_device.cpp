@@ -18,10 +18,12 @@ void SceneViewer::createLogicalDevice() {
     }
 
     // physical device features
-    VkPhysicalDeviceFeatures deviceFeatures{};
+    VkPhysicalDeviceFeatures deviceFeatures {
+        .samplerAnisotropy = VK_TRUE,
+    };
 
     // logical device creation
-    VkDeviceCreateInfo createInfo{
+    VkDeviceCreateInfo createInfo {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
         .pQueueCreateInfos = queueCreateInfos.data(),
@@ -43,4 +45,37 @@ void SceneViewer::createLogicalDevice() {
 
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
     vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+}
+
+void SceneViewer::createHeadlessLogicalDevice() {
+    const float defaultQueuePriority(0.0f);
+    uint32_t queueFamilyCount;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+    // create Info
+    VkDeviceQueueCreateInfo queueCreateInfo = {};
+    for (uint32_t i = 0; i < queueFamilyCount; i++) {
+        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            queueFamilyIndex = i;
+            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfo.queueFamilyIndex = i;
+            queueCreateInfo.queueCount = 1;
+            queueCreateInfo.pQueuePriorities = &defaultQueuePriority;
+            break;
+        }
+    }
+    // Create on logical device
+    VkDeviceCreateInfo createInfo = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos = &queueCreateInfo,
+    };
+    if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create logical device!");
+    }
+
+    // then for graphics queue
+    vkGetDeviceQueue(device, queueFamilyIndex, 0, &graphicsQueue);
 }

@@ -1,6 +1,7 @@
 #include "scene_viewer.hpp"
 
 std::vector<std::vector<Vertex>> frame_vertices_static(MAX_FRAMES_IN_FLIGHT);
+std::vector<Vertex> static_vertices;
 std::vector<Vertex> indexed_vertices;
 
 bool SceneViewer::leftMouseButtonPressed = false;
@@ -9,18 +10,37 @@ double SceneViewer::lastYPos;
 
 void SceneViewer::initVulkan() {
     createInstance();
+    std::cout << "1" << std::endl;
     setupDebugMessenger();
+    std::cout << "2" << std::endl;
     createSurface();
+    std::cout << "3" << std::endl;
     pickPhysicalDevice();
+    std::cout << "4" << std::endl;
     createLogicalDevice();
+    std::cout << "5" << std::endl;
+
     createSwapChain();
+    std::cout << "6" << std::endl;
     createImageViews();
+    std::cout << "7" << std::endl;
+
     createRenderPass();
+    std::cout << "8" << std::endl;
     createDescriptorSetLayout();
-    createGraphicsPipeline();
+    std::cout << "9" << std::endl;
+    createGraphicsPipelines();
+    std::cout << "10" << std::endl;
     createCommandPool();
+    std::cout << "11" << std::endl;
     createDepthResources();
+    std::cout << "12" << std::endl;
     createFramebuffers();
+    std::cout << "13" << std::endl;
+
+    createTextureImage();
+    createTextureImageView();
+    createTextureSampler();
 
     createVertexBuffer();
     createIndexBuffer();
@@ -31,13 +51,34 @@ void SceneViewer::initVulkan() {
     createCommandBuffers();
     createSyncObjects();
     
-    
-    startTime = std::chrono::high_resolution_clock::now();
 }
 
 void SceneViewer::cleanup() {
 
     cleanupSwapChain();
+    
+    vkDestroySampler(device, textureSampler2D, nullptr);
+    vkDestroySampler(device, textureSamplerCube, nullptr);
+
+    for (auto& imageView : texture2DImageViews) {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
+    for (auto& image : texture2DImages) {
+        vkDestroyImage(device, image, nullptr);
+    }
+    for (auto& memory : texture2DImageMemorys) {
+        vkFreeMemory(device, memory, nullptr);
+    }
+
+    for (auto& imageView : textureCubeImageViews) {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
+    for (auto& image : textureCubeImages) {
+        vkDestroyImage(device, image, nullptr);
+    }
+    for (auto& memory : textureCubeImageMemorys) {
+        vkFreeMemory(device, memory, nullptr);
+    }
 
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
@@ -92,14 +133,17 @@ void SceneViewer::initWindow() {
 }
 
 void SceneViewer::mainLoop() {
+    // easyCheckSetup();
+
+    copyAllMeshVertexToBuffer();
+    
+    startTime = std::chrono::high_resolution_clock::now();
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
-        assignCurrentFrame();
+        setup_frame_instances(-1);
 
         drawFrame();
-
-        // std::cout << window_width << " " << window_height << std::endl;
     }
     vkDeviceWaitIdle(device);
 }
@@ -121,6 +165,126 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
     }
 }
 
+void SceneViewer::loadCheck() {
+    // initialize frame instances
+    frame_material_meshInnerId2ModelMatrices.resize(MAX_FRAMES_IN_FLIGHT);
+
+    texturePrepare();
+
+    std::cout << "In loadCheck(), we have " << scene_config.id2instance.size() << " instances" << std::endl;
+
+    // check if we have this camera
+    if (scene_config.cameras.find(scene_config.cur_camera) == scene_config.cameras.end()) {
+        throw std::runtime_error("Camera " + scene_config.cur_camera + " not found in scene file");
+    }
+    scene_config.cur_camera = camera_name;
+}
+
+void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    // w:87 a:65 s:83 d:68 up:265 down:264 left:263 right:262 u:85 n:78 space:32
+    std::unordered_map<int, bool> key_map;
+    if (action == GLFW_PRESS) {
+        key_map[key] = true;
+    }
+    else if (action == GLFW_RELEASE) {
+        key_map[key] = false;
+    }
+
+    auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
+    if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
+        return;
+    }
+
+    std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
+    cglm::Vec3f dir = normalize(camera->dir);
+    cglm::Vec3f up = normalize(camera->up);
+    cglm::Vec3f right = normalize(cglm::cross(dir, up));
+
+    if (key_map[263]) {
+        cglm::Mat44f rot = cglm::rotate(up, cglm::to_radians(2.0f));
+        cglm::Vec3f new_dir = rot * dir;
+        camera->dir = cglm::normalize(new_dir);
+    }
+
+    if (key_map[262]) {
+        cglm::Mat44f rot = cglm::rotate(up, cglm::to_radians(-2.0f));
+        cglm::Vec3f new_dir = rot * dir;
+        camera->dir = cglm::normalize(new_dir);
+    }
+
+    if (key_map[265]) {
+        cglm::Mat44f rot = cglm::rotate(right, cglm::to_radians(2.0f));
+        cglm::Vec3f new_dir = rot * dir;
+        camera->dir = cglm::normalize(new_dir);
+        camera->up = cglm::normalize(rot * up);
+    }
+
+    if (key_map[264]) {
+        cglm::Mat44f rot = cglm::rotate(right, cglm::to_radians(-2.0f));
+        cglm::Vec3f new_dir = rot * dir;
+        camera->dir = cglm::normalize(new_dir);
+        camera->up = cglm::normalize(rot * up);
+    }
+
+    // i-73, o-79
+    if (key_map[73]) {
+        // rotate around dir axis
+        cglm::Mat44f rot = cglm::rotate(dir, cglm::to_radians(-2.0f));
+        cglm::Vec3f new_up = rot * up;
+        camera->up = cglm::normalize(new_up);
+    }
+    if (key_map[79]) {
+        // rotate around dir axis
+        cglm::Mat44f rot = cglm::rotate(dir, cglm::to_radians(2.0f));
+        cglm::Vec3f new_up = rot * up;
+        camera->up = cglm::normalize(new_up);
+    }
+
+    // now control camera movement
+    if (key_map[87]) {
+        cglm::Vec3f new_pos = camera->position + dir * 0.1f;
+        camera->position = new_pos;
+    }
+
+    if (key_map[83]) {
+        cglm::Vec3f new_pos = camera->position - dir * 0.1f;
+        camera->position = new_pos;
+    }
+
+    if (key_map[65]) {
+        cglm::Vec3f new_pos = camera->position - right * 0.1f;
+        camera->position = new_pos;
+    }
+
+    if (key_map[68]) {
+        cglm::Vec3f new_pos = camera->position + right * 0.1f;
+        camera->position = new_pos;
+    }
+
+    if (key_map[85]) {
+        // make camera up
+        cglm::Vec3f new_pos = camera->position + up * 0.1f;
+        camera->position = new_pos;
+    }
+
+    if (key_map[78]) {
+        // make camera down
+        cglm::Vec3f new_pos = camera->position - up * 0.1f;
+        camera->position = new_pos;
+    }
+
+    if (key_map[32]) {
+        // space, control animation
+        app->animationPlay = !app->animationPlay;
+    }
+
+    // print camera info
+    // std::cout << "Camera Position: " << camera->position[0] << " " << camera->position[1] << " " << camera->position[2] << std::endl;
+    // std::cout << "Camera Dir: " << camera->dir[0] << " " << camera->dir[1] << " " << camera->dir[2] << std::endl;
+    // std::cout << "Camera Up: " << camera->up[0] << " " << camera->up[1] << " " << camera->up[2] << std::endl;
+
+    camera->update_planes();
+}
 
 void SceneViewer::mouse_control_callback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
@@ -176,163 +340,126 @@ void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, doub
     }
 }
 
+void SceneViewer::setup_frame_instances(double inTime) {
+    // start from root, make each dfs, using currentFrame
+    frame_material_meshInnerId2ModelMatrices[currentFrame].clear();
 
-void SceneViewer::loadCheck() {
-    // check if we have this camera
-    if (scene_config.cameras.find(scene_config.cur_camera) == scene_config.cameras.end()) {
-        throw std::runtime_error("Camera " + scene_config.cur_camera + " not found in scene file");
+    cglm::Mat44f identity_m = cglm::identity(1.0f);
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    double dtime = std::chrono::duration<double, std::chrono::seconds::period>(currentTime - startTime).count();
+    if (inTime != -1) {
+        dtime = inTime;
     }
-    scene_config.cur_camera = camera_name;
+    // for each driver, assign current animation_transform matrix
+    if (animationPlay) {
+        for (auto& [name, driver] : scene_config.name2driver) {
+            // if (!driver->useful) {
+            //     std::cout << name << " is not useful, skip" << std::endl;
+            //     continue;
+            // }
+            cglm::Mat44f animation_transform = driver->getCurrentTransform(dtime);
+            if (driver->channel == "translation")
+                scene_config.id2node[driver->node]->translation = animation_transform;
+            else if (driver->channel == "rotation")
+                scene_config.id2node[driver->node]->rotation = animation_transform;
+            else if (driver->channel == "scale")
+                scene_config.id2node[driver->node]->scale = scene_config.id2node[driver->node]->translation = animation_transform;
+        }
+    }
+    
+    for (auto node_id : scene_config.scene->children) {
+        dfs_instance(node_id, currentFrame, identity_m);
+    }
+
 }
 
-// based on current scene/camera, assign the current frame with correct vertex data
-void SceneViewer::assignCurrentFrame() {
-    std::shared_ptr<sconfig::Camera> camera = scene_config.cameras[scene_config.cur_camera];
-    frame_vertices_static[currentFrame].clear();
-    std::cout << "Current Camera: " << scene_config.cur_camera << " Culling " << culling << std::endl;
-    std::vector<std::shared_ptr<sconfig::Plane>> bound_spheres = camera->bounds;
-    std::cout << camera->position << " With Direction: " << camera->dir << std::endl;
+void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f parent_transform) {
+    std::shared_ptr<sconfig::Node> node = scene_config.id2node[node_id];
+    cglm::Mat44f curTransform;
+    curTransform = parent_transform * node->translation * node->rotation * node->scale;
 
-    // I should use the scene
-    std::shared_ptr<sconfig::Scene> scene = scene_config.scene;
-    for (auto& child_node : scene->children) {
-        std::shared_ptr<sconfig::Node> node = scene_config.id2node[child_node];
+    // dfs on children
+    for (auto child_id : node->children) {
+        dfs_instance(child_id, currentFrame, curTransform);
+    }
 
-        // case - 1: no culling, draw everything
-        if (culling == "none") {
-            for (int i = 0; i < node->vertex_count; i++) {
-                cglm::Vec3f norm = normalize(node->normals[i]);
-                Vertex vertex{};
-                vertex.pos = node->positions[i];
-                vertex.color = node->colors[i];
-                frame_vertices_static[currentFrame].push_back(vertex);
+    // then for all meshes
+    for (auto mesh_id : node->mesh) {
+        // before push, we need test if we can see it
+        std::shared_ptr<sconfig::Bound_Sphere> bound_sphere = scene_config.id2mesh[mesh_id]->bound_sphere;
+        // get new center and use scale to simulate new radius
+        cglm::Vec4f sub_new_center = curTransform * cglm::Vec4f(bound_sphere->center, 1.0f);
+        cglm::Vec3f new_center = { sub_new_center[0] / sub_new_center[3], sub_new_center[1] / sub_new_center[3], sub_new_center[2] / sub_new_center[3] };
+        float scale_x = abs(curTransform(0, 0)), scale_y = abs(curTransform(1, 1)), scale_z = abs(curTransform(2, 2));
+        float new_radius = bound_sphere->radius * std::max(scale_x, std::max(scale_y, scale_z));
+        
+        // check with boundaries
+        std::vector<std::shared_ptr<sconfig::Plane>> planes = scene_config.cameras[scene_config.cur_camera]->bounds;
+        bool visible = true;
+        int ii = 0;
+        for (auto& plane : planes) {
+            float distance = cglm::dot(plane->normal, new_center) - plane->d;
+            if (distance + new_radius < 0.0f) {
+                visible = false;
+                break;
             }
+            ++ii;
+        }
+
+        if (!visible) {
             continue;
         }
 
-        // case - 2: so we only have frustum culling
-        std::vector<std::shared_ptr<sconfig::Bound_Sphere>> bs_instances = node->bound_spheres;
-        for (auto& bs : bs_instances) {
-            cglm::Vec3f center = bs->center;
-            float radius = bs->radius;
-
-            // std::cout << "Center: " << center << " Radius: " << radius << std::endl;
-            bool in_view = true;
-            // test each boundary
-            int i = 0;
-            for (auto& plane : bound_spheres) {
-                cglm::Vec3f normal = plane->normal;
-                cglm::Vec3f on_plane_point = plane->normal * plane->d;
-                float d2 = cglm::dot(normal, center - on_plane_point);
-                if (d2 + radius <= 0) {
-                    in_view = false;
-                    break;
-                }
-                ++i;
-            }
-
-            if (!in_view) {
-                continue;
-            }
-
-            // then this instance is in view
-            for (int i = bs->startIdx; i < bs->endIdx; i++) {
-                cglm::Vec3f norm = normalize(node->normals[i]);
-                Vertex vertex{};
-                vertex.pos = node->positions[i];
-                vertex.color = node->colors[i];
-                frame_vertices_static[currentFrame].push_back(vertex);
-            }
-        }
-
+        // based on material & mesh, insert it
+        int material_id = scene_config.id2mesh[mesh_id]->material_id;
+        // std::cout << "Material Id: " << material_id << std::endl;
+        MaterialType materialType = scene_config.id2material[material_id]->matetial_type;
+        int inner_id = scene_config.id2mesh[mesh_id]->inner_id;
+        frame_material_meshInnerId2ModelMatrices[currentFrame][materialType][inner_id].push_back(curTransform);
+        // std::cout << "Material " << materialType << " InnerId " << inner_id << std::endl;
     }
-
-    std::cout << "Static Vertices: " << frame_vertices_static[currentFrame].size() << std::endl;
-
-    if (frame_vertices_static[currentFrame].size() == 0) {
-        std::cout << "No vertex in current frame" << std::endl;
-        return;
-    }
-    copyVertexToBuffer();
 }
 
-void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    // w:87 a:65 s:83 d:68 up:265 down:264 left:263 right:262 u:85 n:78
-    std::unordered_map<int, bool> key_map;
-    if (action == GLFW_PRESS) {
-        key_map[key] = true;
-    } else if (action == GLFW_RELEASE) {
-        key_map[key] = false;
+void SceneViewer::easyCheckSetup() {
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        frame_vertices_static[i].clear();
+        Vertex vertex{};
+        vertex.pos = { 0.0f, 0.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 1.0f, 0.0f, 0.0f };
+        frame_vertices_static[i].push_back(vertex);
+
+        // next point
+        vertex.pos = { 1.0f, 0.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 0.0f, 1.0f, 0.0f };
+        frame_vertices_static[i].push_back(vertex);
+
+        // next point
+        vertex.pos = { 0.0f, 1.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 0.0f, 0.0f, 1.0f };
+        frame_vertices_static[i].push_back(vertex);
+
+        
+        // next point
+        vertex.pos = { 0.0f, 1.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 0.0f, 0.0f, 1.0f };
+        frame_vertices_static[i].push_back(vertex);
+
+        // next point
+        vertex.pos = { 1.0f, 0.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 0.0f, 1.0f, 0.0f };
+        frame_vertices_static[i].push_back(vertex);
+
+        // next point
+        vertex.pos = { 1.0f, 1.0f, 0.0f };
+        vertex.normal = { 0.0f, 0.0f, 1.0f };
+        vertex.color = { 1.0f, 1.0f, 1.0f };
+        frame_vertices_static[i].push_back(vertex);
     }
-
-    auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
-    if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
-        return;
-    }
-
-    std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
-    cglm::Vec3f dir = normalize(camera->dir);
-    cglm::Vec3f up = normalize(camera->up);
-    cglm::Vec3f right = normalize(cglm::cross(dir, up));
-
-    if (key_map[263]) {
-        cglm::Mat44f rot = cglm::rotate(up, cglm::to_radians(2.0f));
-        cglm::Vec3f new_dir = rot * dir;
-        camera->dir = cglm::normalize(new_dir);
-    }
-
-    if (key_map[262]) {
-        cglm::Mat44f rot = cglm::rotate(up, cglm::to_radians(-2.0f));
-        cglm::Vec3f new_dir = rot * dir;
-        camera->dir = cglm::normalize(new_dir);
-    }
-
-    if (key_map[265]) {
-        cglm::Mat44f rot = cglm::rotate(right, cglm::to_radians(2.0f));
-        cglm::Vec3f new_dir = rot * dir;
-        camera->dir = cglm::normalize(new_dir);
-        camera->up = cglm::normalize(rot * up);
-    }
-
-    if (key_map[264]) {
-        cglm::Mat44f rot = cglm::rotate(right, cglm::to_radians(-2.0f));
-        cglm::Vec3f new_dir = rot * dir;
-        camera->dir = cglm::normalize(new_dir);
-        camera->up = cglm::normalize(rot * up);
-    }
-
-    // now control camera movement
-    if (key_map[87]) {
-        cglm::Vec3f new_pos = camera->position + dir * 0.1f;
-        camera->position = new_pos;
-    }
-
-    if (key_map[83]) {
-        cglm::Vec3f new_pos = camera->position - dir * 0.1f;
-        camera->position = new_pos;
-    }
-
-    if (key_map[65]) {
-        cglm::Vec3f new_pos = camera->position - right * 0.1f;
-        camera->position = new_pos;
-    }
-
-    if (key_map[68]) {
-        cglm::Vec3f new_pos = camera->position + right * 0.1f;
-        camera->position = new_pos;
-    }
-
-    if (key_map[85]) {
-        // make camera up
-        cglm::Vec3f new_pos = camera->position + up * 0.1f;
-        camera->position = new_pos;
-    }
-
-    if (key_map[78]) {
-        // make camera down
-        cglm::Vec3f new_pos = camera->position - up * 0.1f;
-        camera->position = new_pos;
-    }
-
-    camera->update_planes();
 }
+

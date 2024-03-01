@@ -15,6 +15,12 @@ void SceneViewer::pickPhysicalDevice() {
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
+    // special case for headless mode
+    if (is_headless) {
+        physicalDevice = devices[0];
+        return;
+    }
+
     for (const auto& device : devices) {
         if (isPhysicalDeviceSuitable(device)) {
             physicalDevice = device;
@@ -73,7 +79,10 @@ bool SceneViewer::isPhysicalDeviceSuitable(VkPhysicalDevice device) {
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
-    return indices.graphicsFamily.has_value() && extensionsSupported && swapChainAdequate;
+    VkPhysicalDeviceFeatures supportedFeatures;
+    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+
+    return indices.graphicsFamily.has_value() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
 

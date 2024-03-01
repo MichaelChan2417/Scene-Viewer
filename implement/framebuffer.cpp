@@ -25,6 +25,30 @@ void SceneViewer::createFramebuffers() {
     }    
 }
 
+void SceneViewer::createHeadlessFramebuffers() {
+    
+    createColorResources();
+    createHeadlessDepthResources();
+
+    VkImageView attachments[2];
+    attachments[0] = colorImageView;
+    attachments[1] = depthImageView;
+
+    VkFramebufferCreateInfo framebufferInfo{
+        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        .renderPass = renderPass,
+        .attachmentCount = 2,
+        .pAttachments = attachments,
+        .width = static_cast<uint32_t>(window_width),
+        .height = static_cast<uint32_t>(window_height),
+        .layers = 1,
+    };
+
+    if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &headlessFramebuffer) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create framebuffer!");
+    }
+}
+
 void SceneViewer::createCommandPool() {
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
     VkCommandPoolCreateInfo poolInfo{
@@ -33,6 +57,17 @@ void SceneViewer::createCommandPool() {
         .queueFamilyIndex = queueFamilyIndices.graphicsFamily.value(),
     };
     if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create command pool!");
+    }
+}
+
+void SceneViewer::createHeadlessCommandPool() {
+    VkCommandPoolCreateInfo cmdPoolInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .queueFamilyIndex = queueFamilyIndex,
+    };
+    if (vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &commandPool) != VK_SUCCESS) {
         throw std::runtime_error("failed to create command pool!");
     }
 }
@@ -50,9 +85,33 @@ void SceneViewer::createCommandBuffers() {
     }
 }
 
+void SceneViewer::createHeadlessCommandBuffers() {
+    commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    VkCommandBufferAllocateInfo allocInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = commandPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = static_cast<uint32_t>(commandBuffers.size()),
+    };
+    if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
+
+    copyCmdBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    VkCommandBufferAllocateInfo copyAllocInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = commandPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = static_cast<uint32_t>(copyCmdBuffers.size()),
+    };
+    if (vkAllocateCommandBuffers(device, &copyAllocInfo, copyCmdBuffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
+}
+
 void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
     // begin recording command buffer
-    VkCommandBufferBeginInfo beginInfo{
+    VkCommandBufferBeginInfo beginInfo {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = 0,
         .pInheritanceInfo = nullptr,
@@ -63,7 +122,7 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
     // begin drawing, (render pass)
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    clearValues[0].color = {{1.0f, 0.5976f, 1.0f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
     VkRenderPassBeginInfo renderPassInfo {
@@ -79,9 +138,8 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     };
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    // bind graphics pipeline
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    VkViewport viewport {
+    // some pre-sets
+    VkViewport viewport{
         .x = 0.0f,
         .y = 0.0f,
         .width = static_cast<float>(swapChainExtent.width),
@@ -89,28 +147,35 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
     };
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
+    
     VkRect2D scissor{};
     scissor.offset = {0, 0};
     scissor.extent = swapChainExtent;
 
-    // std::cout << "Extent Size is " << swapChainExtent.width << " " << swapChainExtent.height << std::endl;
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
     VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+    // bind graphics pipeline -> multiple times
+    for (auto& pair : material2Pipelines) {
+        MaterialType materialType = pair.first;
+        VkPipeline graphicsPipeline = pair.second;
+
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+        frameRealDraw(commandBuffer, materialType);
+    }
     
+
     // this is actually drawing
-    vkCmdDraw(commandBuffer,
-        static_cast<uint32_t>(frame_vertices_static[currentFrame].size()),      /* Vertex Count */
-        1,      /* Instance Count */
-        0,      /* First Vertex, defines lowest value of gl_VertexIndex */
-        0
-    );
+    // vkCmdDraw(commandBuffer,
+    //     static_cast<uint32_t>(frame_vertices_static[currentFrame].size() / 2),      /* Vertex Count */
+    //     2,      /* Instance Count */
+    //     3,      /* First Vertex, defines lowest value of gl_VertexIndex */
+    //     0       /* First Instance Index, defines lowest of gl_InstanceIndex */
+    // );
 
     // if with index buffer
     // vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
@@ -168,14 +233,14 @@ void SceneViewer::drawFrame() {
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
-    
+
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
     // submit command buffer to graphics queue
     VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
-    VkSubmitInfo submitInfo{
+    VkSubmitInfo submitInfo {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = waitSemaphores,
@@ -191,7 +256,7 @@ void SceneViewer::drawFrame() {
     }
 
     VkSwapchainKHR swapChains[] = { swapChain };
-    VkPresentInfoKHR presentInfo{
+    VkPresentInfoKHR presentInfo {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = signalSemaphores,
@@ -216,4 +281,62 @@ void SceneViewer::drawFrame() {
 void SceneViewer::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
     auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
+}
+
+void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, MaterialType materialType) {
+
+    auto& meshInnerId2ModelMatrices = frame_material_meshInnerId2ModelMatrices[currentFrame][materialType];
+    // for each mesh, draw the instance vertexs
+    int curInstanceIndex = 0;
+
+    for (auto& p : meshInnerId2ModelMatrices) {
+        int meshInnerId = p.first;
+        auto& modelMatrices = p.second;
+        int meshId = scene_config.innerId2meshId[meshInnerId];
+        int vertexCount = scene_config.id2mesh[meshId]->vertex_count;
+        int numInstances = modelMatrices.size();
+        // vertexIndex is the offset
+        int vertexIndex = meshInnerId2Offset[meshInnerId];
+
+        if (numInstances == 0) {
+            continue;
+        }
+        vkCmdDraw(commandBuffer,
+            static_cast<uint32_t>(vertexCount),      /* Vertex Count */
+            numInstances,           /* Instance Count */
+            vertexIndex,            /* First Vertex, defines lowest value of gl_VertexIndex */
+            curInstanceIndex        /* First Instance Index, defines lowest of gl_InstanceIndex */
+        );
+        curInstanceIndex += numInstances;
+    }
+
+    // // for each vertex, got all instance copy in this frame
+    // std::vector<std::vector<cglm::Mat44f>> curFrameInstances = frame_instances[currentFrame];  // vector is mesh based
+    // int curVertexIndex = 0;
+    // int curInstanceIndex = 0;
+    
+    // // this is also the number of vertices
+    // for (size_t i = 0; i < curFrameInstances.size(); i++) {
+    //     // for each mesh, draw the instance vertexs
+    //     int meshId = scene_config.innerId2meshId[i];
+    //     int vertexCount = scene_config.id2mesh[meshId]->vertex_count;
+    //     int nextVertexIndex = curVertexIndex + vertexCount;
+
+    //     int numInstances = curFrameInstances[i].size();
+    //     if (numInstances == 0) {
+    //         curVertexIndex = nextVertexIndex;
+    //         continue;
+    //     }
+    //     vkCmdDraw(commandBuffer,
+    //         static_cast<uint32_t>(vertexCount),      /* Vertex Count */
+    //         numInstances,           /* Instance Count */
+    //         curVertexIndex,         /* First Vertex, defines lowest value of gl_VertexIndex */
+    //         curInstanceIndex        /* First Instance Index, defines lowest of gl_InstanceIndex */
+    //     );
+    //     // std::cout << "Draw mesh: " << scene_config.id2mesh[meshId]->name << " with " << numInstances << " instances";
+    //     // std::cout << " from vertex " << curVertexIndex << " to " << nextVertexIndex << std::endl;
+    //     curVertexIndex = nextVertexIndex;
+    //     curInstanceIndex += numInstances;
+    // }
+
 }
