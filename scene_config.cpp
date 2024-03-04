@@ -127,18 +127,19 @@ namespace sconfig {
             std::shared_ptr<Lambertian> lab_data = std::make_shared<Lambertian>();
             lab_data->albedo_type = TextureType::texture2D;
 
-            if (lamb->contents.find("type") != lamb->contents.end()) {
-                std::string tp = std::get<std::string>(lamb->contents.at("type"));
-                if (tp == "cube") {
-                    lab_data->albedo_type = TextureType::textureCube;
-                }
-            }
-
-            if (std::holds_alternative<std::string>(albedo)) {
-                lab_data->albedo = std::get<std::string>(albedo);
-            }
-            else if (std::holds_alternative<std::vector<double>>(albedo)) {
+            // if the case with single values
+            if (std::holds_alternative<std::vector<double>>(albedo)) {
                 lab_data->albedo = std::get<std::vector<double>>(albedo);
+            }
+            else {
+                auto& src_obj = std::get<mcjp::Object*>(albedo);
+                lab_data->albedo = std::get<std::string>(src_obj->contents.at("src"));
+                if (src_obj->contents.find("type") != src_obj->contents.end()) {
+                    std::string tp = std::get<std::string>(src_obj->contents.at("type"));
+                    if (tp == "cube") {
+                        lab_data->albedo_type = TextureType::textureCube;
+                    }
+                }
             }
 
             material->matetial_detail = lab_data;
@@ -259,6 +260,8 @@ namespace sconfig {
             file.read(reinterpret_cast<char*>(&u), sizeof(float));
             file.read(reinterpret_cast<char*>(&v), sizeof(float));
             mesh->texcoords.push_back(cglm::Vec2f{ u, v });
+            // mesh->texcoords.push_back(cglm::Vec2f{ 0.5f, 0.5f});
+            // std::cout << "u " << u << " v " << v << std::endl;
 
             // colors
             file.seekg(color_offset + i * stride);
@@ -539,7 +542,7 @@ namespace sconfig {
                 cameraPtr->vfov = 1.04719f;
                 cameraPtr->near = 0.1f;
                 cameraPtr->far = 100.0f;
-                cameraPtr->position = { -12.0f, 0.0f, 7.0f };
+                cameraPtr->position = { -5.0f, 0.0f, 2.0f };
                 cameraPtr->dir = { 1.0f, 0.0f, 0.0f };
                 cameraPtr->up = {0.0f, 0.0f, 1.0f};
                 cameras["debug"] = cameraPtr;

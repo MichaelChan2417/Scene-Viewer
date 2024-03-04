@@ -23,7 +23,8 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
         fragShaderCode = readFile("shaders/frag_simple.spv"); // TODO: change to pbr shader
         break;
     case MaterialType::lambertian:
-        fragShaderCode = readFile("shaders/frag_simple.spv"); // TODO: change to lambertian shader
+        vertShaderCode = readFile("shaders/lambertian/vert.spv");
+        fragShaderCode = readFile("shaders/lambertian/frag.spv");
         break;
     case MaterialType::mirror:
         vertShaderCode = readFile("shaders/mirror/vert.spv");
@@ -69,6 +70,13 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
     case MaterialType::simple:
         attributeDescriptions = Vertex::getSimpleAttributeDescriptions();
         break;
+    case MaterialType::mirror:
+        attributeDescriptions = Vertex::getEnvAttributeDescriptions();
+        break;
+    case MaterialType::lambertian:
+        attributeDescriptions = Vertex::getLambertianAttributeDescriptions();
+        break;
+    // TODO: add pbr
     }
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo {

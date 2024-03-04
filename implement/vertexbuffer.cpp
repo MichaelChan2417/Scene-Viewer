@@ -25,6 +25,29 @@ void SceneViewer::copyAllMeshVertexToBuffer() {
     int prev = 0;
     for (int inner_id = 0; inner_id < scene_config.cur_mesh; inner_id++) {
         std::shared_ptr<sconfig::Mesh> meshPtr = scene_config.id2mesh[scene_config.innerId2meshId[inner_id]];
+
+        // we should assign material here too, as lambertian
+        int material_id = meshPtr->material_id;
+        std::shared_ptr<sconfig::Material> materialPtr = scene_config.id2material[material_id];
+        // to be assigned
+        float mat_idx = 0.0f; float mat_type = 0.0f;
+        if (materialPtr->matetial_type == MaterialType::lambertian) {
+            std::shared_ptr<sconfig::Lambertian> lambertianPtr = std::get<std::shared_ptr<sconfig::Lambertian>>(materialPtr->matetial_detail);
+            std::string& filename = std::get<std::string>(lambertianPtr->albedo);
+            if (lambertianPtr->albedo_type == TextureType::textureCube) {
+                mat_type = 1;
+                mat_idx = scene_config.textureCube2Idx[filename];
+            }
+            else {
+                mat_type = 0;
+                mat_idx = scene_config.texture2D2Idx[filename];
+                std::cout << "file name: " << filename << " idx: " << mat_idx << std::endl;
+            }
+        }
+        if (materialPtr->matetial_type == MaterialType::pbr) {
+            throw std::runtime_error("PBR material is not supported yet!");
+        }
+        
         int vertex_count = meshPtr->vertex_count;
         // std::cout << "Inner vertex count: " << vertex_count << std::endl;
         for (int i = 0; i < vertex_count; i++) {
@@ -32,6 +55,8 @@ void SceneViewer::copyAllMeshVertexToBuffer() {
                 .pos = meshPtr->positions[i],
                 .normal = meshPtr->normals[i],
                 .color = meshPtr->colors[i],
+                .texCoord = meshPtr->texcoords[i],
+                .mappingIdxs = {mat_idx, 0.0f, 0.0f, mat_type}
             };
         }
         meshInnerId2Offset[inner_id] = prev;

@@ -25,6 +25,7 @@ struct Vertex {
     cglm::Vec3f normal;
     cglm::Vec3f color;
     cglm::Vec2f texCoord;
+    cglm::Vec4f mappingIdxs; // if last element is 0, then it's a 2D texture, otherwise it's a cube texture
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{
@@ -62,6 +63,28 @@ struct Vertex {
         attributeDescriptions[1].location = 1;
         attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescriptions[1].offset = offsetof(Vertex, normal);
+
+        return attributeDescriptions;
+    }
+
+    static std::vector<VkVertexInputAttributeDescription> getLambertianAttributeDescriptions() {
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(4);
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, normal);
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        attributeDescriptions[3].offset = offsetof(Vertex, mappingIdxs);
 
         return attributeDescriptions;
     }
@@ -270,6 +293,9 @@ public:
     void createTextureImageView();
     void createTextureSampler();
     void texturePrepare();
+    void createTextureImagesWithViews();
+    void createTextureImage2D(const std::string& file_name, int idx);
+    void createTextureImageCube(const std::string& file_name, int idx);
 
     // Uniform buffer
     void createDescriptorSetLayout();

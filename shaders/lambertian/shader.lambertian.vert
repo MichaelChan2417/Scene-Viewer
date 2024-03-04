@@ -13,15 +13,26 @@ layout(binding = 0) uniform UniformBufferObject {
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 texCoord;
+layout(location = 3) in vec4 textureMapIdxs;
 
-layout(location = 0) out vec3 fragNormal;       // this is for
+layout(location = 0) out vec3 fragNormal;       // this is for lighting
 layout(location = 1) out vec2 fragTexCoord;
+layout(location = 2) out vec4 fragTexMapIdxs;
+layout(location = 3) out int cval;
 
 void main() {
     mat4 normalMatrix = transpose(inverse(ubo.instanceModels[gl_InstanceIndex]));
-    gl_Position = ubo.proj * ubo.view * ubo.instanceModels[gl_InstanceIndex] * vec4(inPosition, 1.0);
+    vec4 after_Pos = ubo.instanceModels[gl_InstanceIndex] * vec4(inPosition, 1.0);
+    gl_Position = ubo.proj * ubo.view * after_Pos;
 
     vec3 rNormal = mat3(normalMatrix) * inNormal;
-    fragNormal = rNormal;
+    fragNormal = normalize(inPosition);
     fragTexCoord = texCoord;
+
+    fragTexMapIdxs = textureMapIdxs;
+    if (after_Pos[0] <= 1) {
+        cval = 1;
+    } else {
+        cval = 0;
+    }
 }

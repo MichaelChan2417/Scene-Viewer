@@ -102,7 +102,7 @@ void SceneViewer::createDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding sampler2DLayoutBinding {
         .binding = 1,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = MAX_INSTANCE,       // the real binding count is the number of textures
+        .descriptorCount = MAX_INSTANCE,       // TODO: the real binding count is the number of textures
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .pImmutableSamplers = nullptr,
     };
@@ -110,7 +110,7 @@ void SceneViewer::createDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding samplerCubeLayoutBinding {
         .binding = 2,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = MAX_INSTANCE,       // the real binding count is the number of textures
+        .descriptorCount = MAX_INSTANCE,       // TODO: the real binding count is the number of textures
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .pImmutableSamplers = nullptr,
     };
@@ -185,12 +185,16 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
 
 void SceneViewer::createDescriptorPool() {
 
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    std::array<VkDescriptorPoolSize, 3> poolSizes{};
     poolSizes[0] = {
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
     };
     poolSizes[1] = {
+        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+    };
+    poolSizes[2] = {
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
     };
@@ -228,11 +232,41 @@ void SceneViewer::createDescriptorSets() {
             .range = sizeof(UniformBufferObject),
         };
 
-        VkDescriptorImageInfo imageInfo {
-            .sampler = textureSampler,
-            .imageView = textureImageView,
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        };
+        std::vector<VkDescriptorImageInfo> image2DInfos(MAX_INSTANCE);
+        for (int j=0; j<texture2DImageViews.size(); j++) {
+            VkDescriptorImageInfo imageInfo {
+                .sampler = textureSampler2D,
+                .imageView = texture2DImageViews[j],
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            };
+            image2DInfos[j] = imageInfo;
+        }
+        for (int j=texture2DImageViews.size(); j<MAX_INSTANCE; j++) {
+            VkDescriptorImageInfo imageInfo {
+                .sampler = textureSampler2D,
+                .imageView = texture2DImageViews[0],
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            };
+            image2DInfos[j] = imageInfo;
+        }
+
+        std::vector<VkDescriptorImageInfo> imageCubeInfos(MAX_INSTANCE);
+        for (int j=0; j<textureCubeImageViews.size(); j++) {
+            VkDescriptorImageInfo imageInfo {
+                .sampler = textureSamplerCube,
+                .imageView = textureCubeImageViews[j],
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            };
+            imageCubeInfos[j] = imageInfo;
+        }
+        for (int j=textureCubeImageViews.size(); j<MAX_INSTANCE; j++) {
+            VkDescriptorImageInfo imageInfo {
+                .sampler = textureSamplerCube,
+                .imageView = textureCubeImageViews[0],
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            };
+            imageCubeInfos[j] = imageInfo;
+        }
 
         std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
@@ -251,9 +285,9 @@ void SceneViewer::createDescriptorSets() {
             .dstSet = descriptorSets[i],
             .dstBinding = 1,
             .dstArrayElement = 0,
-            .descriptorCount = 1,   // TODO: to be updated with imageInfo's size (2D)
+            .descriptorCount = MAX_INSTANCE,   // TODO: to be updated with imageInfo's size (2D)
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .pImageInfo = &imageInfo,   // TODO: to be updated with imageInfo (2D)
+            .pImageInfo = image2DInfos.data(),   // TODO: to be updated with imageInfo (2D)
         };
 
         descriptorWrites[2] = {
@@ -261,9 +295,9 @@ void SceneViewer::createDescriptorSets() {
             .dstSet = descriptorSets[i],
             .dstBinding = 2,
             .dstArrayElement = 0,
-            .descriptorCount = 1,   // TODO: to be updated with imageInfo's size (Cube)
+            .descriptorCount = MAX_INSTANCE,   // TODO: to be updated with imageInfo's size (Cube)
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .pImageInfo = &imageInfo,   // TODO: to be updated with imageInfo (Cube)
+            .pImageInfo = imageCubeInfos.data(),   // TODO: to be updated with imageInfo (Cube)
         };
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);

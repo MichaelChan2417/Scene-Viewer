@@ -38,8 +38,9 @@ void SceneViewer::initVulkan() {
     createFramebuffers();
     std::cout << "13" << std::endl;
 
-    createTextureImage();
-    createTextureImageView();
+    // createTextureImage();
+    // createTextureImageView();
+    createTextureImagesWithViews();
     createTextureSampler();
 
     createVertexBuffer();
