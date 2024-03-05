@@ -7,17 +7,14 @@ layout(binding = 2) uniform samplerCube texCubeSampler[MAX_INSTANCE];
 
 layout(location = 0) in vec3 fragNormal;
 layout(location = 1) in vec2 fragTexCoord;
-layout(location = 2) in vec4 fragTexMapIdxs;
-layout(location = 3) flat in int cval;
+layout(location = 2) flat in int mType;
+layout(location = 3) flat in int mIdx;
 
 layout(location = 0) out vec4 outColor;
 
 vec3 decodeRGBE(vec4 rgbe)
 {
     float av = rgbe.a;
-    if (av == 1) {
-        return rgbe.rgb;
-    }
 
     float exponent = av * 255.0 - 128.0;
     float scale = pow(2.0, exponent);
@@ -26,17 +23,22 @@ vec3 decodeRGBE(vec4 rgbe)
 
 void main() {
 
-    int spIdx = int(clamp(fragTexMapIdxs[0], 0.0, float(MAX_INSTANCE - 1)));
+    // cube - 0 is always environment; cube - 1 is always env-lambertian
+    vec4 env_light = texture(texCubeSampler[1], fragNormal);
+    vec3 light_decode = decodeRGBE(env_light);
+
     // 2D texture
-    if (fragTexMapIdxs[3] == 0) {
-        vec4 rgbeColor = texture(tex2DSampler[cval], fragTexCoord);
-        vec3 decodedColor = decodeRGBE(rgbeColor);
-        outColor = vec4(decodedColor, 1.0);
+    vec3 baseColor;
+    if (mType == 0) {
+        vec4 rgbeColor = texture(tex2DSampler[mIdx], fragTexCoord);
+        baseColor = rgbeColor.rgb;
     }
     else {
-        vec4 rgbeColor = texture(texCubeSampler[cval], fragNormal);
-        vec3 decodedColor = decodeRGBE(rgbeColor);
-        outColor = vec4(decodedColor, 1.0);
+        vec4 rgbeColor = texture(texCubeSampler[mIdx], fragNormal);
+        baseColor = decodeRGBE(rgbeColor);
     }
 
+    outColor = vec4(baseColor * light_decode, 1.0);
+
+    // outColor = vec4(0.0, 0.0, cval, 1.0);
 }

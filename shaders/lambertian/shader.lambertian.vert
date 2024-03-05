@@ -13,12 +13,12 @@ layout(binding = 0) uniform UniformBufferObject {
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 texCoord;
-layout(location = 3) in vec4 textureMapIdxs;
+layout(location = 3) in vec3 textureMapIdxs;
 
 layout(location = 0) out vec3 fragNormal;       // this is for lighting
 layout(location = 1) out vec2 fragTexCoord;
-layout(location = 2) out vec4 fragTexMapIdxs;
-layout(location = 3) out int cval;
+layout(location = 2) out int mType;
+layout(location = 3) out int mIdx;
 
 void main() {
     mat4 normalMatrix = transpose(inverse(ubo.instanceModels[gl_InstanceIndex]));
@@ -29,10 +29,17 @@ void main() {
     fragNormal = normalize(inPosition);
     fragTexCoord = texCoord;
 
-    fragTexMapIdxs = textureMapIdxs;
-    if (after_Pos[0] <= 1) {
-        cval = 1;
-    } else {
-        cval = 0;
+    if (textureMapIdxs[2] == 0) {
+        mType = 0;
+    }
+    else {
+        mType = 1;
+    }
+
+    if (textureMapIdxs[0] < 1) {
+        mIdx = 0;
+    }
+    else {
+        mIdx = 1;
     }
 }

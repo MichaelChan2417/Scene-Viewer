@@ -128,7 +128,7 @@ void SceneViewer::createTextureSampler() {
         throw std::runtime_error("failed to create texture sampler!");
     }
 
-    // then for cube // TODO: seems we don't need this?? 
+    // then for cube
     if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSamplerCube) != VK_SUCCESS) {
         throw std::runtime_error("failed to create texture sampler!");
     }
@@ -141,7 +141,7 @@ void SceneViewer::texturePrepare() {
     scene_config.textureCube2Idx[env->texture_src] = scene_config.textureCube2Idx.size();
 
     // TODO: then is a environment light sampler
-    std::cout << "TODO: in texture" << std::endl;
+    scene_config.textureCube2Idx["textures/out.lambertian.png"] = scene_config.textureCube2Idx.size();
 
     // then for all materials => load texture
     for (auto& [id, mat] : scene_config.id2material) {

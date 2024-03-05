@@ -41,7 +41,6 @@ void SceneViewer::copyAllMeshVertexToBuffer() {
             else {
                 mat_type = 0;
                 mat_idx = scene_config.texture2D2Idx[filename];
-                std::cout << "file name: " << filename << " idx: " << mat_idx << std::endl;
             }
         }
         if (materialPtr->matetial_type == MaterialType::pbr) {
@@ -49,6 +48,9 @@ void SceneViewer::copyAllMeshVertexToBuffer() {
         }
         
         int vertex_count = meshPtr->vertex_count;
+        
+        std::cout << "material name: " << materialPtr->name << " idx: " << mat_idx << "type goes to " << mat_type << std::endl;
+        cglm::Vec3f midx = { mat_idx, 0.0f, mat_type };
         // std::cout << "Inner vertex count: " << vertex_count << std::endl;
         for (int i = 0; i < vertex_count; i++) {
             static_vertices[prev + i] = {
@@ -56,7 +58,7 @@ void SceneViewer::copyAllMeshVertexToBuffer() {
                 .normal = meshPtr->normals[i],
                 .color = meshPtr->colors[i],
                 .texCoord = meshPtr->texcoords[i],
-                .mappingIdxs = {mat_idx, 0.0f, 0.0f, mat_type}
+                .mappingIdxs = midx
             };
         }
         meshInnerId2Offset[inner_id] = prev;
