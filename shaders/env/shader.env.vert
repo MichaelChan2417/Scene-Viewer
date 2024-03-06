@@ -12,8 +12,10 @@ layout(binding = 0) uniform UniformBufferObject {
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec2 inNormalMapping;
 
 layout(location = 0) out vec3 fragNormal;
+layout(location = 1) out int outNormalMappingIdx;
 
 void main() {
     mat4 normalMatrix = transpose(inverse(ubo.instanceModels[gl_InstanceIndex]));
@@ -21,4 +23,8 @@ void main() {
 
     vec3 rNormal = mat3(normalMatrix) * inNormal;
     fragNormal = rNormal;
+
+    if (inNormalMapping[0] != -1) {
+        outNormalMappingIdx = inNormalMapping[0];
+    }
 }

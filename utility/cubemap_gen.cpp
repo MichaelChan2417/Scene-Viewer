@@ -19,6 +19,7 @@
 constexpr int WIDTH = 16;
 
 void parse_lambertian(unsigned char* image_data, unsigned char* output_data, int width, int height);
+void make_ggx(unsigned char* image_data, int width, int height);
 
 glm::vec4 hemi_integrate(unsigned char* image_data, int width, int height, glm::vec3& normal);
 
@@ -54,20 +55,30 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // create a cubemap of size WIDTH*WIDTH*6 to store output
-    unsigned char* output_data = new unsigned char[WIDTH * WIDTH * 6 * 4];
-
     if (mode == "lambertian") {
+        // create a cubemap of size WIDTH*WIDTH*6 to store output
+        unsigned char* output_data = new unsigned char[WIDTH * WIDTH * 6 * 4];
         out_file = "out.lambertian.png";
         parse_lambertian(image_data, output_data, width, height);
+        stbi_write_png(out_file.c_str(), WIDTH, WIDTH * 6, 4, output_data, WIDTH * 4);
+        delete[] output_data;
+    }
+    // mode should be ggx
+    else {
+        make_ggx(image_data, width, height);
     }
 
     // clean resources
     stbi_image_free(image_data);
-    stbi_write_png(out_file.c_str(), WIDTH, WIDTH * 6, 4, output_data, WIDTH * 4);
 
-    delete[] output_data;
 }
+
+
+void make_ggx(unsigned char* image_data, int width, int height) {
+    // roughness from 0.0 to 1.0, each increased by 0.1
+}
+
+
 
 void parse_lambertian(unsigned char* image_data, unsigned char* output_data, int width, int height) {
 

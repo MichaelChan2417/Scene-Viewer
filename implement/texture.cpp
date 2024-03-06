@@ -140,12 +140,21 @@ void SceneViewer::texturePrepare() {
     std::shared_ptr<sconfig::Environment> env = scene_config.environment;
     scene_config.textureCube2Idx[env->texture_src] = scene_config.textureCube2Idx.size();
 
-    // TODO: then is a environment light sampler
+    // then is a environment light sampler
     scene_config.textureCube2Idx["textures/out.lambertian.png"] = scene_config.textureCube2Idx.size();
+
+    // default color
+    scene_config.texture2D2Idx["textures/default2D.png"] = scene_config.texture2D2Idx.size();
 
     // then for all materials => load texture
     for (auto& [id, mat] : scene_config.id2material) {
-        std::cout << id << " " << mat->matetial_type << std::endl;
+        // if anymaterial has a normal map, then load it
+        if (mat->normal_map != "") {
+            if (scene_config.texture2D2Idx.find(mat->normal_map) != scene_config.texture2D2Idx.end()) {
+                continue;
+            }
+            scene_config.texture2D2Idx[mat->normal_map] = scene_config.texture2D2Idx.size();
+        }
 
         if (mat->matetial_type == MaterialType::lambertian) {
             std::shared_ptr<sconfig::Lambertian> detail = std::get<std::shared_ptr<sconfig::Lambertian>>(mat->matetial_detail);

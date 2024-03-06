@@ -6,6 +6,7 @@ layout(binding = 1) uniform sampler2D tex2DSampler[MAX_INSTANCE];
 layout(binding = 2) uniform samplerCube texCubeSampler[MAX_INSTANCE];
 
 layout(location = 0) in vec3 fragNormal;
+layout(location = 1) flat in inNormalMappingIdx;
 
 layout(location = 0) out vec4 outColor;
 
@@ -17,6 +18,13 @@ vec3 decodeRGBE(vec4 rgbe)
 }
 
 void main() {
+
+    vec3 rNormal = fragNormal;
+
+    if (inNormalMapping != -1) {
+        rNormal = texture(tex2DSampler[inNormalMapping], )
+    }
+
     vec4 rgbeColor = texture(texCubeSampler[0], fragNormal);
     vec3 decodedColor = decodeRGBE(rgbeColor);
     outColor = vec4(decodedColor, 1.0);

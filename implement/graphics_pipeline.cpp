@@ -27,12 +27,12 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
         fragShaderCode = readFile("shaders/lambertian/frag.spv");
         break;
     case MaterialType::mirror:
-        vertShaderCode = readFile("shaders/mirror/vert.spv");
-        fragShaderCode = readFile("shaders/mirror/frag.spv");
+        vertShaderCode = readFile("shaders/lambertian/vert.spv");
+        fragShaderCode = readFile("shaders/lambertian/frag.spv");
         break;
     case MaterialType::environment:
-        vertShaderCode = readFile("shaders/env/vert.spv");
-        fragShaderCode = readFile("shaders/env/frag.spv");
+        vertShaderCode = readFile("shaders/lambertian/vert.spv");
+        fragShaderCode = readFile("shaders/lambertian/frag.spv");
         break;
     case MaterialType::simple:
         vertShaderCode = readFile("shaders/simple/vert.spv");
@@ -65,13 +65,13 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
     switch (material_type)
     {
     case MaterialType::environment:
-        attributeDescriptions = Vertex::getEnvAttributeDescriptions();
+        attributeDescriptions = Vertex::getLambertianAttributeDescriptions();
         break;
     case MaterialType::simple:
         attributeDescriptions = Vertex::getSimpleAttributeDescriptions();
         break;
     case MaterialType::mirror:
-        attributeDescriptions = Vertex::getEnvAttributeDescriptions();
+        attributeDescriptions = Vertex::getLambertianAttributeDescriptions();
         break;
     case MaterialType::lambertian:
         attributeDescriptions = Vertex::getLambertianAttributeDescriptions();

@@ -112,8 +112,11 @@ namespace sconfig {
         std::shared_ptr<Material> material = std::make_shared<Material>();
         material->name = std::get<std::string>(obj->contents.at("name"));
 
-        // TODO: skip for now -- normal map
-        // TODO: skip for now -- displacement map
+        // normal map
+        if (obj->contents.find("normalMap") != obj->contents.end()) {
+            mcjp::Object* nm_src = std::get<mcjp::Object*>(obj->contents.at("normalMap"));
+            material->normal_map = std::get<std::string>(nm_src->contents.at("src"));
+        }
 
         // pbr, lambertian, mirror, environment, simple, should only be one of them
         if (obj->contents.find("pbr") != obj->contents.end()) {
@@ -206,8 +209,23 @@ namespace sconfig {
         mcjp::Object* position = std::get<mcjp::Object*>(attributes->contents.at("POSITION"));
         mcjp::Object* normal = std::get<mcjp::Object*>(attributes->contents.at("NORMAL"));
         mcjp::Object* color = std::get<mcjp::Object*>(attributes->contents.at("COLOR"));
-        mcjp::Object* tangent = std::get<mcjp::Object*>(attributes->contents.at("TANGENT"));
-        mcjp::Object* texcoord = std::get<mcjp::Object*>(attributes->contents.at("TEXCOORD"));
+
+        // tangent and texcoord are optional
+        mcjp::Object* tangent;
+        if (attributes->contents.find("TANGENT") == attributes->contents.end()) {
+            tangent = nullptr;
+        }
+        else {
+            tangent = std::get<mcjp::Object*>(attributes->contents.at("TANGENT"));
+        }
+
+        mcjp::Object* texcoord;
+        if (attributes->contents.find("TEXCOORD") == attributes->contents.end()) {
+            texcoord = nullptr;
+        }
+        else {
+            texcoord = std::get<mcjp::Object*>(attributes->contents.at("TEXCOORD"));
+        }
 
         mesh->position_format = std::get<std::string>(position->contents.at("format"));
         mesh->normal_format = std::get<std::string>(normal->contents.at("format"));
@@ -218,8 +236,14 @@ namespace sconfig {
         int stride = std::get<double>(position->contents.at("stride"));
         int pos_offset = std::get<double>(position->contents.at("offset"));
         int normal_offset = std::get<double>(normal->contents.at("offset"));
-        int tangent_offset = std::get<double>(tangent->contents.at("offset"));
-        int texcoord_offset = std::get<double>(texcoord->contents.at("offset"));
+        int tangent_offset = -1;
+        if (tangent != nullptr) {
+            tangent_offset = std::get<double>(tangent->contents.at("offset"));
+        }
+        int texcoord_offset = -1;
+        if (texcoord != nullptr) {
+            texcoord_offset = std::get<double>(texcoord->contents.at("offset"));
+        }
         int color_offset = std::get<double>(color->contents.at("offset"));
 
         std::ifstream file(file_name, std::ios::binary);
@@ -246,22 +270,24 @@ namespace sconfig {
             mesh->normals.push_back(cglm::Vec3f{ nx, ny, nz });
 
             // tangents
-            file.seekg(tangent_offset + i * stride);
-            float tx, ty, tz, tw;
-            file.read(reinterpret_cast<char*>(&tx), sizeof(float));
-            file.read(reinterpret_cast<char*>(&ty), sizeof(float));
-            file.read(reinterpret_cast<char*>(&tz), sizeof(float));
-            file.read(reinterpret_cast<char*>(&tw), sizeof(float));
-            mesh->tangents.push_back(cglm::Vec4f{ tx, ty, tz, tw });
+            if (tangent_offset != -1) {
+                file.seekg(tangent_offset + i * stride);
+                float tx, ty, tz, tw;
+                file.read(reinterpret_cast<char*>(&tx), sizeof(float));
+                file.read(reinterpret_cast<char*>(&ty), sizeof(float));
+                file.read(reinterpret_cast<char*>(&tz), sizeof(float));
+                file.read(reinterpret_cast<char*>(&tw), sizeof(float));
+                mesh->tangents.push_back(cglm::Vec4f{ tx, ty, tz, tw });
+            }
 
             // texcoords
-            file.seekg(texcoord_offset + i * stride);
-            float u, v;
-            file.read(reinterpret_cast<char*>(&u), sizeof(float));
-            file.read(reinterpret_cast<char*>(&v), sizeof(float));
-            mesh->texcoords.push_back(cglm::Vec2f{ u, v });
-            // mesh->texcoords.push_back(cglm::Vec2f{ 0.5f, 0.5f});
-            // std::cout << "u " << u << " v " << v << std::endl;
+            if (texcoord_offset != -1) {
+                file.seekg(texcoord_offset + i * stride);
+                float u, v;
+                file.read(reinterpret_cast<char*>(&u), sizeof(float));
+                file.read(reinterpret_cast<char*>(&v), sizeof(float));
+                mesh->texcoords.push_back(cglm::Vec2f{ u, v });
+            }
 
             // colors
             file.seekg(color_offset + i * stride);
@@ -489,6 +515,7 @@ namespace sconfig {
         // initialize parameters
         this->cur_instance = 0;
         this->cur_mesh = 0;
+
         // default material is simple
         std::shared_ptr<Material> materialPtr = std::make_shared<Material>();
         materialPtr->name = "_default_simple";

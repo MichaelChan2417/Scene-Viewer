@@ -29,7 +29,7 @@ void SceneViewer::copyAllMeshVertexToBuffer() {
         // we should assign material here too, as lambertian
         int material_id = meshPtr->material_id;
         std::shared_ptr<sconfig::Material> materialPtr = scene_config.id2material[material_id];
-        // to be assigned
+
         float mat_idx = 0.0f; float mat_type = 0.0f;
         if (materialPtr->matetial_type == MaterialType::lambertian) {
             std::shared_ptr<sconfig::Lambertian> lambertianPtr = std::get<std::shared_ptr<sconfig::Lambertian>>(materialPtr->matetial_detail);
@@ -46,20 +46,34 @@ void SceneViewer::copyAllMeshVertexToBuffer() {
         if (materialPtr->matetial_type == MaterialType::pbr) {
             throw std::runtime_error("PBR material is not supported yet!");
         }
-        
+
+        // normal maps
+        float normal_map_idx = -1.0f;
+        if (materialPtr->normal_map != "") {
+            std::string& filename = materialPtr->normal_map;
+            normal_map_idx = scene_config.texture2D2Idx[filename];
+        }
+        cglm::Vec2f normal_map_idxv = { normal_map_idx, 0.0f };
+
         int vertex_count = meshPtr->vertex_count;
         
         std::cout << "material name: " << materialPtr->name << " idx: " << mat_idx << "type goes to " << mat_type << std::endl;
         cglm::Vec3f midx = { mat_idx, 0.0f, mat_type };
         // std::cout << "Inner vertex count: " << vertex_count << std::endl;
         for (int i = 0; i < vertex_count; i++) {
+            
             static_vertices[prev + i] = {
                 .pos = meshPtr->positions[i],
                 .normal = meshPtr->normals[i],
                 .color = meshPtr->colors[i],
-                .texCoord = meshPtr->texcoords[i],
-                .mappingIdxs = midx
+                .mappingIdxs = midx,
+                .normalMappingIdxs = normal_map_idxv
             };
+
+            if (meshPtr->texcoords.size() > 0) {
+                static_vertices[prev + i].texCoord = meshPtr->texcoords[i];
+            }
+
         }
         meshInnerId2Offset[inner_id] = prev;
         prev += vertex_count;
