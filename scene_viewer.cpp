@@ -10,36 +10,24 @@ double SceneViewer::lastYPos;
 
 void SceneViewer::initVulkan() {
     createInstance();
-    std::cout << "1" << std::endl;
     setupDebugMessenger();
-    std::cout << "2" << std::endl;
     createSurface();
-    std::cout << "3" << std::endl;
     pickPhysicalDevice();
-    std::cout << "4" << std::endl;
     createLogicalDevice();
-    std::cout << "5" << std::endl;
 
     createSwapChain();
-    std::cout << "6" << std::endl;
     createImageViews();
-    std::cout << "7" << std::endl;
 
     createRenderPass();
-    std::cout << "8" << std::endl;
     createDescriptorSetLayout();
-    std::cout << "9" << std::endl;
     createGraphicsPipelines();
-    std::cout << "10" << std::endl;
     createCommandPool();
-    std::cout << "11" << std::endl;
     createDepthResources();
-    std::cout << "12" << std::endl;
     createFramebuffers();
-    std::cout << "13" << std::endl;
 
-    createTextureImage();
-    createTextureImageView();
+    // createTextureImage();
+    // createTextureImageView();
+    createTextureImagesWithViews();
     createTextureSampler();
 
     createVertexBuffer();
@@ -80,8 +68,14 @@ void SceneViewer::cleanup() {
         vkFreeMemory(device, memory, nullptr);
     }
 
-    vkDestroyPipeline(device, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    // vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    for (auto& [materialType, pipeline] : material2Pipelines) {
+        vkDestroyPipeline(device, pipeline, nullptr);
+    }
+    // vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    for (auto& [materialType, cpipelineLayout] : material2PipelineLayouts) {
+        vkDestroyPipelineLayout(device, cpipelineLayout, nullptr);
+    }
     vkDestroyRenderPass(device, renderPass, nullptr);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -133,7 +127,6 @@ void SceneViewer::initWindow() {
 }
 
 void SceneViewer::mainLoop() {
-    // easyCheckSetup();
 
     copyAllMeshVertexToBuffer();
     
@@ -420,46 +413,3 @@ void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f paren
         // std::cout << "Material " << materialType << " InnerId " << inner_id << std::endl;
     }
 }
-
-void SceneViewer::easyCheckSetup() {
-    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        frame_vertices_static[i].clear();
-        Vertex vertex{};
-        vertex.pos = { 0.0f, 0.0f, 0.0f };
-        vertex.normal = { 0.0f, 0.0f, 1.0f };
-        vertex.color = { 1.0f, 0.0f, 0.0f };
-        frame_vertices_static[i].push_back(vertex);
-
-        // next point
-        vertex.pos = { 1.0f, 0.0f, 0.0f };
-        vertex.normal = { 0.0f, 0.0f, 1.0f };
-        vertex.color = { 0.0f, 1.0f, 0.0f };
-        frame_vertices_static[i].push_back(vertex);
-
-        // next point
-        vertex.pos = { 0.0f, 1.0f, 0.0f };
-        vertex.normal = { 0.0f, 0.0f, 1.0f };
-        vertex.color = { 0.0f, 0.0f, 1.0f };
-        frame_vertices_static[i].push_back(vertex);
-
-        
-        // next point
-        vertex.pos = { 0.0f, 1.0f, 0.0f };
-        vertex.normal = { 0.0f, 0.0f, 1.0f };
-        vertex.color = { 0.0f, 0.0f, 1.0f };
-        frame_vertices_static[i].push_back(vertex);
-
-        // next point
-        vertex.pos = { 1.0f, 0.0f, 0.0f };
-        vertex.normal = { 0.0f, 0.0f, 1.0f };
-        vertex.color = { 0.0f, 1.0f, 0.0f };
-        frame_vertices_static[i].push_back(vertex);
-
-        // next point
-        vertex.pos = { 1.0f, 1.0f, 0.0f };
-        vertex.normal = { 0.0f, 0.0f, 1.0f };
-        vertex.color = { 1.0f, 1.0f, 1.0f };
-        frame_vertices_static[i].push_back(vertex);
-    }
-}
-

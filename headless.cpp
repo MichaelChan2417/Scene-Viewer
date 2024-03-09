@@ -364,7 +364,7 @@ void SceneViewer::recordHeadlessCommandBuffer(VkCommandBuffer commandBuffer) {
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
     // draw
-    frameRealDraw(commandBuffer, MaterialType::simple);
+    // frameRealDraw(commandBuffer, MaterialType::simple);
 
     // end drawing
     vkCmdEndRenderPass(commandBuffer);

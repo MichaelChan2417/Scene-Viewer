@@ -25,14 +25,62 @@ void SceneViewer::copyAllMeshVertexToBuffer() {
     int prev = 0;
     for (int inner_id = 0; inner_id < scene_config.cur_mesh; inner_id++) {
         std::shared_ptr<sconfig::Mesh> meshPtr = scene_config.id2mesh[scene_config.innerId2meshId[inner_id]];
+
+        // we should assign material here too, as lambertian
+        int material_id = meshPtr->material_id;
+        std::shared_ptr<sconfig::Material> materialPtr = scene_config.id2material[material_id];
+
+        float mat_idx = 0.0f; float mat_type = 0.0f;
+        cglm::Vec3f pbrss = { -1.0f, -1.0f, -1.0f };
+        if (materialPtr->matetial_type == MaterialType::lambertian) {
+            std::shared_ptr<sconfig::Lambertian> lambertianPtr = std::get<std::shared_ptr<sconfig::Lambertian>>(materialPtr->matetial_detail);
+            std::string& filename = std::get<std::string>(lambertianPtr->albedo);
+            if (lambertianPtr->albedo_type == TextureType::textureCube) {
+                mat_type = 1;
+                mat_idx = scene_config.textureCube2Idx[filename];
+            }
+            else {
+                mat_type = 0;
+                mat_idx = scene_config.texture2D2Idx[filename];
+            }
+        }
+        if (materialPtr->matetial_type == MaterialType::pbr) {
+            std::shared_ptr<sconfig::Pbr> pbrPtr = std::get<std::shared_ptr<sconfig::Pbr>>(materialPtr->matetial_detail);
+            std::string filename = std::get<std::string>(pbrPtr->albedo);
+            pbrss[0] = scene_config.texture2D2Idx[filename];
+            filename = std::get<std::string>(pbrPtr->roughness);
+            pbrss[1] = scene_config.texture2D2Idx[filename];
+            filename = std::get<std::string>(pbrPtr->metalness);
+            pbrss[2] = scene_config.texture2D2Idx[filename];
+        }
+
+        // normal maps
+        float normal_map_idx = -1.0f;
+        if (materialPtr->normal_map != "") {
+            std::string& filename = materialPtr->normal_map;
+            normal_map_idx = scene_config.texture2D2Idx[filename];
+        }
+        cglm::Vec2f normal_map_idxv = { normal_map_idx, 0.0f };
+
         int vertex_count = meshPtr->vertex_count;
+        
+        // std::cout << "material name: " << materialPtr->name << " idx: " << mat_idx << "type goes to " << mat_type << std::endl;
+        cglm::Vec3f midx = { mat_idx, 0.0f, mat_type };
         // std::cout << "Inner vertex count: " << vertex_count << std::endl;
         for (int i = 0; i < vertex_count; i++) {
             static_vertices[prev + i] = {
                 .pos = meshPtr->positions[i],
                 .normal = meshPtr->normals[i],
                 .color = meshPtr->colors[i],
+                .mappingIdxs = midx,
+                .normalMappingIdxs = normal_map_idxv,
+                .pbrs = pbrss
             };
+
+            if (meshPtr->texcoords.size() > 0) {
+                static_vertices[prev + i].texCoord = meshPtr->texcoords[i];
+            }
+
         }
         meshInnerId2Offset[inner_id] = prev;
         prev += vertex_count;

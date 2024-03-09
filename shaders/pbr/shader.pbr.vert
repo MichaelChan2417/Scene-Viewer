@@ -14,7 +14,9 @@ layout(binding = 0) uniform UniformBufferObject {
 struct OutputBlock {
     int outNormalMapIdx;
     int textForm[2];
+    int pbrs[3];
     mat4 outNormalMatrix;
+    vec3 fragTrack;
 };
 
 
@@ -24,6 +26,7 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 texCoord;
 layout(location = 3) in vec3 textureMapIdxs;
 layout(location = 4) in vec2 inNormalMapIdx;
+layout(location = 5) in vec3 pbrs;
 
 
 // OUTS:
@@ -42,7 +45,14 @@ void main() {
     outputData.textForm[0] = int(textureMapIdxs[2]);
     outputData.textForm[1] = int(textureMapIdxs[0]);
 
-    fragNormal = rNormal;
+    fragNormal = rNormal;    
     outputData.outNormalMatrix = normalMatrix;
     outputData.outNormalMapIdx = int(inNormalMapIdx[0]);
+    
+    vec3 in_dir = ubo.cameraPos - after_Pos.xyz;
+    outputData.fragTrack = in_dir;
+
+    outputData.pbrs[0] = int(pbrs[0]);
+    outputData.pbrs[1] = int(pbrs[1]);
+    outputData.pbrs[2] = int(pbrs[2]);
 }

@@ -20,10 +20,12 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
     switch (material_type)
     {
     case MaterialType::pbr:
-        fragShaderCode = readFile("shaders/frag_simple.spv"); // TODO: change to pbr shader
+        vertShaderCode = readFile("shaders/pbr/vert.spv");
+        fragShaderCode = readFile("shaders/pbr/frag.spv");
         break;
     case MaterialType::lambertian:
-        fragShaderCode = readFile("shaders/frag_simple.spv"); // TODO: change to lambertian shader
+        vertShaderCode = readFile("shaders/lambertian/vert.spv");
+        fragShaderCode = readFile("shaders/lambertian/frag.spv");
         break;
     case MaterialType::mirror:
         vertShaderCode = readFile("shaders/mirror/vert.spv");
@@ -64,10 +66,19 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
     switch (material_type)
     {
     case MaterialType::environment:
-        attributeDescriptions = Vertex::getEnvAttributeDescriptions();
+        attributeDescriptions = Vertex::getLambertianAttributeDescriptions();
         break;
     case MaterialType::simple:
         attributeDescriptions = Vertex::getSimpleAttributeDescriptions();
+        break;
+    case MaterialType::mirror:
+        attributeDescriptions = Vertex::getLambertianAttributeDescriptions();
+        break;
+    case MaterialType::lambertian:
+        attributeDescriptions = Vertex::getLambertianAttributeDescriptions();
+        break;
+    case MaterialType::pbr:
+        attributeDescriptions = Vertex::getPbrAttributeDescriptions();
         break;
     }
 
@@ -158,7 +169,7 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
         .pushConstantRangeCount = 0,
         .pPushConstantRanges = nullptr,
     };
-    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+    if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &material2PipelineLayouts[material_type]) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create pipeline layout!");
     }
 
@@ -175,7 +186,7 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
         .pDepthStencilState = &depthStencil,
         .pColorBlendState = &colorBlending,
         .pDynamicState = &dynamicState,
-        .layout = pipelineLayout,
+        .layout = material2PipelineLayouts[material_type],
         .renderPass = renderPass,
         .subpass = 0,
         .basePipelineHandle = VK_NULL_HANDLE,
