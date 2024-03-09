@@ -5,7 +5,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-void generateSinglePixel(std::vector<double>& val, std::string& file_name);
+void generateSinglePixel(const std::vector<double>& val, std::string& file_name);
 
 void SceneViewer::createTextureImagesWithViews() {
     // start with 2D's
@@ -29,7 +29,7 @@ void SceneViewer::createTextureImage2D(const std::string& file_name, int idx) {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(file_name.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
-    std::cout << "texture image size: " << texWidth << "x" << texHeight << std::endl;
+    // std::cout << "texture image size: " << texWidth << "x" << texHeight << std::endl;
 
     if (!pixels) {
         throw std::runtime_error("Failed to load texture image!");
@@ -141,7 +141,14 @@ void SceneViewer::texturePrepare() {
     scene_config.textureCube2Idx[env->texture_src] = scene_config.textureCube2Idx.size();
 
     // then is a environment light sampler
-    scene_config.textureCube2Idx["textures/out.lambertian.png"] = scene_config.textureCube2Idx.size();
+    scene_config.textureCube2Idx["textures/lambertian/out.lambertian.png"] = scene_config.textureCube2Idx.size();
+
+    // then for pbr
+    for (int i = 0; i <= 10; i++) {
+        scene_config.textureCube2Idx["textures/pbr/out.ggx." + std::to_string(i) + ".png"] = scene_config.textureCube2Idx.size();
+    }
+    // also with lut
+    scene_config.texture2D2Idx["textures/pbr/out.lut.png"] = scene_config.texture2D2Idx.size();
 
     // default color
     scene_config.texture2D2Idx["textures/default2D.png"] = scene_config.texture2D2Idx.size();
@@ -156,6 +163,7 @@ void SceneViewer::texturePrepare() {
             scene_config.texture2D2Idx[mat->normal_map] = scene_config.texture2D2Idx.size();
         }
 
+        // lambertian - case
         if (mat->matetial_type == MaterialType::lambertian) {
             std::shared_ptr<sconfig::Lambertian> detail = std::get<std::shared_ptr<sconfig::Lambertian>>(mat->matetial_detail);
             if (std::holds_alternative<std::vector<double>>(detail->albedo)) {
@@ -176,6 +184,67 @@ void SceneViewer::texturePrepare() {
                 scene_config.textureCube2Idx[filename] = scene_config.textureCube2Idx.size();
             }
         }
+
+        // pbr - case
+        if (mat->matetial_type == MaterialType::pbr) {
+            std::shared_ptr<sconfig::Pbr> detail = std::get<std::shared_ptr<sconfig::Pbr>>(mat->matetial_detail);
+
+            if (std::holds_alternative<std::vector<double>>(detail->albedo)) {
+                std::string temp_file_name = "temp\\pbr_" + std::to_string(id) + "_albedo.png";
+                generateSinglePixel(std::get<std::vector<double>>(detail->albedo), temp_file_name);
+                detail->albedo = temp_file_name;
+                detail->albedo_type = TextureType::texture2D;
+            }
+            std::string filename = std::get<std::string>(detail->albedo);
+            if (detail->albedo_type == TextureType::texture2D) {
+                if (scene_config.texture2D2Idx.find(filename) == scene_config.texture2D2Idx.end()) {
+                    scene_config.texture2D2Idx[filename] = scene_config.texture2D2Idx.size();
+                }
+            }
+            else {
+                if (scene_config.textureCube2Idx.find(filename) == scene_config.textureCube2Idx.end()) {
+                    scene_config.textureCube2Idx[filename] = scene_config.textureCube2Idx.size();
+                }
+            }
+
+            if (std::holds_alternative<double>(detail->roughness)) {
+                std::string temp_file_name = "temp\\pbr_" + std::to_string(id) + "_roughness.png";
+                std::vector<double> val = { std::get<double>(detail->roughness), 0, 0 };
+                generateSinglePixel(val, temp_file_name);
+                detail->roughness = temp_file_name;
+                detail->roughness_type = TextureType::texture2D;
+            }
+            filename = std::get<std::string>(detail->roughness);
+            if (detail->roughness_type == TextureType::texture2D) {
+                if (scene_config.texture2D2Idx.find(filename) == scene_config.texture2D2Idx.end()) {
+                    scene_config.texture2D2Idx[filename] = scene_config.texture2D2Idx.size();
+                }
+            }
+            else {
+                if (scene_config.textureCube2Idx.find(filename) == scene_config.textureCube2Idx.end()) {
+                    scene_config.textureCube2Idx[filename] = scene_config.textureCube2Idx.size();
+                }
+            }
+
+            if (std::holds_alternative<double>(detail->metalness)) {
+                std::string temp_file_name = "temp\\pbr_" + std::to_string(id) + "_metalness.png";
+                std::vector<double> val = { std::get<double>(detail->metalness), 0, 0 };
+                generateSinglePixel(val, temp_file_name);
+                detail->metalness = temp_file_name;
+                detail->metalness_type = TextureType::texture2D;
+            }
+            filename = std::get<std::string>(detail->metalness);
+            if (detail->metalness_type == TextureType::texture2D) {
+                if (scene_config.texture2D2Idx.find(filename) == scene_config.texture2D2Idx.end()) {
+                    scene_config.texture2D2Idx[filename] = scene_config.texture2D2Idx.size();
+                }
+            }
+            else {
+                if (scene_config.textureCube2Idx.find(filename) == scene_config.textureCube2Idx.end()) {
+                    scene_config.textureCube2Idx[filename] = scene_config.textureCube2Idx.size();
+                }
+            }
+        }
     }
 
     std::cout << "2D has size " << scene_config.texture2D2Idx.size() << " and cube has size " << scene_config.textureCube2Idx.size() << std::endl;
@@ -194,7 +263,7 @@ void SceneViewer::texturePrepare() {
 }
 
 
-void generateSinglePixel(std::vector<double>& val, std::string& file_name) {
+void generateSinglePixel(const std::vector<double>& val, std::string& file_name) {
     stbi_uc* pixels = new stbi_uc[4];
     pixels[0] = static_cast<stbi_uc>(val[0] * 255);
     pixels[1] = static_cast<stbi_uc>(val[1] * 255);

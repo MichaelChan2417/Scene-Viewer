@@ -27,6 +27,7 @@ struct Vertex {
     cglm::Vec2f texCoord;
     cglm::Vec3f mappingIdxs; // if last element is 0, then it's a 2D texture, otherwise it's a cube texture
     cglm::Vec2f normalMappingIdxs;
+    cglm::Vec3f pbrs;
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{
@@ -94,6 +95,36 @@ struct Vertex {
         attributeDescriptions[4].location = 4;
         attributeDescriptions[4].format = VK_FORMAT_R32G32_SFLOAT;
         attributeDescriptions[4].offset = offsetof(Vertex, normalMappingIdxs);
+
+        return attributeDescriptions;
+    }
+
+    static std::vector<VkVertexInputAttributeDescription> getPbrAttributeDescriptions() {
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(6);
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, normal);
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[3].offset = offsetof(Vertex, mappingIdxs);
+        attributeDescriptions[4].binding = 0;
+        attributeDescriptions[4].location = 4;
+        attributeDescriptions[4].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[4].offset = offsetof(Vertex, normalMappingIdxs);
+        attributeDescriptions[5].binding = 0;
+        attributeDescriptions[5].location = 5;
+        attributeDescriptions[5].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[5].offset = offsetof(Vertex, pbrs);
 
         return attributeDescriptions;
     }
@@ -203,8 +234,9 @@ public:
     VkExtent2D swapChainExtent;             // extent of the swap chain image
     std::vector<VkImageView> swapChainImageViews;
     VkRenderPass renderPass;
-    VkPipelineLayout pipelineLayout;        // TODO: can we use single layout for multiple pipelines?
+    VkPipelineLayout pipelineLayout;        
     VkPipeline graphicsPipeline;
+    std::map<MaterialType, VkPipelineLayout> material2PipelineLayouts;
     std::map<MaterialType, VkPipeline> material2Pipelines;
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkCommandPool commandPool;
@@ -276,7 +308,6 @@ public:
     static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     // =================== inner functions ===================
-    void easyCheckSetup();
     void setup_frame_instances(double inTime);
     void dfs_instance(int node_id, int currentFrame, cglm::Mat44f parent_transform);
     void saveImage(std::string filename);
@@ -334,7 +365,7 @@ public:
     void drawFrame();
     void drawHeadlessFrame();
     void createSyncObjects();
-    void frameRealDraw(VkCommandBuffer commandBuffer, MaterialType mt);
+    void frameRealDraw(VkCommandBuffer commandBuffer, int& currentInstanceIdx, const std::map<int, std::vector<cglm::Mat44f>>& meshInnerId2ModelMatrices);
     void headlessFrameFetch();
 
     // graphics pipeline

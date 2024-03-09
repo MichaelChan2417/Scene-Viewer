@@ -24,7 +24,8 @@ vec3 decodeRGBE(vec4 rgbe)
 
     float exponent = av * 255.0 - 128.0;
     float scale = pow(2.0, exponent);
-    return rgbe.rgb * scale;
+    vec3 res = rgbe.rgb * scale;
+    return res;
 }
 
 void main() {
@@ -36,6 +37,7 @@ void main() {
         rNormal = mNormal.rgb;
         rNormal -= 0.5f;
         rNormal = rNormal * 2.0f;
+        rNormal = mat3(inputData.inNormalMatrix) * rNormal;
     }
 
     // cube - 0 is always environment; cube - 1 is always env-lambertian
@@ -55,5 +57,8 @@ void main() {
 
     outColor = vec4(baseColor * light_decode, 1.0);
 
-    // outColor = vec4(0.0, 0.0, cval, 1.0);
+    // outColor = vec4(fragTexCoord, 0.0, 1.0);
+
+    // outColor = vec4(light_decode, 1.0);
+
 }

@@ -1,11 +1,23 @@
 #version 450
 
-layout(binding = 1) uniform samplerCube texSampler;
+const int MAX_INSTANCE = 128;
 
-layout(location = 0) in vec3 fragTrack;
+layout(binding = 1) uniform sampler2D tex2DSampler[MAX_INSTANCE];
+layout(binding = 2) uniform samplerCube texCubeSampler[MAX_INSTANCE];
+
+struct InputBlock {
+    int inNormalMapIdx;
+    int textForm[2];
+    mat4 inNormalMatrix;
+    vec3 fragTrack;
+};
+
+layout(location = 0) in vec3 fragNormal;
+layout(location = 1) in vec2 fragTexCoord;
+layout(location = 2) flat in InputBlock inputData;
+
 
 layout(location = 0) out vec4 outColor;
-
 vec3 decodeRGBE(vec4 rgbe)
 {
     float exponent = rgbe.a * 255.0 - 128.0;
@@ -15,7 +27,19 @@ vec3 decodeRGBE(vec4 rgbe)
 
 
 void main() {
-    vec4 rgbeColor = texture(texSampler, fragTrack);
+
+    vec3 rNormal = fragNormal;
+
+    if (inputData.inNormalMapIdx != -1) {
+        vec4 mNormal = texture(tex2DSampler[inputData.inNormalMapIdx], fragTexCoord);
+        rNormal = mNormal.rgb;
+        rNormal -= 0.5f;
+        rNormal = rNormal * 2.0f;
+        rNormal = mat3(inputData.inNormalMatrix) * rNormal;
+    }
+
+    vec3 ref_dir = reflect(normalize(rNormal), inputData.fragTrack);
+    vec4 rgbeColor = texture(texCubeSampler[0], ref_dir);
     vec3 decodedColor = decodeRGBE(rgbeColor);
     outColor = vec4(decodedColor, 1.0);
 }

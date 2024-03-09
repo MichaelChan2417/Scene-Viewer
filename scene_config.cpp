@@ -121,7 +121,62 @@ namespace sconfig {
         // pbr, lambertian, mirror, environment, simple, should only be one of them
         if (obj->contents.find("pbr") != obj->contents.end()) {
             material->matetial_type = MaterialType::pbr;
+            mcjp::Object* pbrb = std::get<mcjp::Object*>(obj->contents.at("pbr"));
+            auto& albedo = pbrb->contents.at("albedo");
+            auto& roughness = pbrb->contents.at("roughness");
+            auto& metalness = pbrb->contents.at("metalness");
+
+            std::shared_ptr<Pbr> pbr_data = std::make_shared<Pbr>();
+            pbr_data->albedo_type = TextureType::texture2D;
+            pbr_data->roughness_type = TextureType::texture2D;
+            pbr_data->metalness_type = TextureType::texture2D;
+
+            // albedo
+            if (std::holds_alternative<std::vector<double>>(albedo)) {
+                pbr_data->albedo = std::get<std::vector<double>>(albedo);
+            }
+            else {
+                auto& src_obj = std::get<mcjp::Object*>(albedo);
+                pbr_data->albedo = std::get<std::string>(src_obj->contents.at("src"));
+                if (src_obj->contents.find("type") != src_obj->contents.end()) {
+                    std::string tp = std::get<std::string>(src_obj->contents.at("type"));
+                    if (tp == "cube") {
+                        pbr_data->albedo_type = TextureType::textureCube;
+                    }
+                }
+            }
+            // roughness
+            if (std::holds_alternative<double>(roughness)) {
+                pbr_data->roughness = std::get<double>(roughness);
+            }
+            else {
+                auto& src_obj = std::get<mcjp::Object*>(roughness);
+                pbr_data->roughness = std::get<std::string>(src_obj->contents.at("src"));
+                if (src_obj->contents.find("type") != src_obj->contents.end()) {
+                    std::string tp = std::get<std::string>(src_obj->contents.at("type"));
+                    if (tp == "cube") {
+                        pbr_data->roughness_type = TextureType::textureCube;
+                    }
+                }
+            }
+            // metalness
+            if (std::holds_alternative<double>(metalness)) {
+                pbr_data->metalness = std::get<double>(metalness);
+            }
+            else {
+                auto& src_obj = std::get<mcjp::Object*>(metalness);
+                pbr_data->metalness = std::get<std::string>(src_obj->contents.at("src"));
+                if (src_obj->contents.find("type") != src_obj->contents.end()) {
+                    std::string tp = std::get<std::string>(src_obj->contents.at("type"));
+                    if (tp == "cube") {
+                        pbr_data->metalness_type = TextureType::textureCube;
+                    }
+                }
+            }
+
+            material->matetial_detail = pbr_data;
         }
+
         else if (obj->contents.find("lambertian") != obj->contents.end()) {
             material->matetial_type = MaterialType::lambertian;
             mcjp::Object* lamb = std::get<mcjp::Object*>(obj->contents.at("lambertian"));
@@ -199,7 +254,7 @@ namespace sconfig {
             mesh->material_id = static_cast<int>(std::get<double>(obj->contents.at("material")));
         }
 
-        // TODO: handle optional indices
+        // handle optional indices
         if (obj->contents.find("indices") != obj->contents.end()) {
             throw std::runtime_error("Indices not supported yet!");
         }
@@ -288,6 +343,11 @@ namespace sconfig {
                 file.read(reinterpret_cast<char*>(&v), sizeof(float));
                 mesh->texcoords.push_back(cglm::Vec2f{ u, v });
             }
+        
+            // if (mesh->name == "Cube" && mesh->material_id == 40.0) {
+            //     std::cout << x << " " << y << " " << z << " => ";
+            //     std::cout << mesh->texcoords.back()[0] << " " << mesh->texcoords.back()[1] << std::endl;
+            // }
 
             // colors
             file.seekg(color_offset + i * stride);
@@ -558,7 +618,6 @@ namespace sconfig {
             }
             else if (type == "environment" || type == "ENVIRONMENT") {
                 environment = generateEnvironment(obj);
-                // adding texture to set
             }
 
             if (cameras["debug"] == nullptr) {
@@ -566,11 +625,11 @@ namespace sconfig {
                 std::shared_ptr<Camera> cameraPtr = std::make_shared<Camera>();
                 cameraPtr->name = "debug";
                 cameraPtr->aspect = 1.777f;
-                cameraPtr->vfov = 1.04719f;
+                cameraPtr->vfov = 0.47109f;
                 cameraPtr->near = 0.1f;
                 cameraPtr->far = 100.0f;
-                cameraPtr->position = { -5.0f, 0.0f, 2.0f };
-                cameraPtr->dir = { 1.0f, 0.0f, 0.0f };
+                cameraPtr->position = { 4.5f, -10.5f, 2.6f };
+                cameraPtr->dir = { 0.0f, 1.0f, 0.0f };
                 cameraPtr->up = {0.0f, 0.0f, 1.0f};
                 cameras["debug"] = cameraPtr;
                 cameraPtr->update_planes();

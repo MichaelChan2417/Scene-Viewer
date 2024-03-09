@@ -156,18 +156,35 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     VkDeviceSize offsets[] = {0};
 
     // bind graphics pipeline -> multiple times
-    for (auto& pair : material2Pipelines) {
+    // for (auto& pair : material2Pipelines) {
+    //     MaterialType materialType = pair.first;
+    //     VkPipeline graphicsPipeline = pair.second;
+
+    //     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+    //     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    //     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    //     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    //     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material2PipelineLayouts[materialType], 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+    //     frameRealDraw(commandBuffer, materialType);
+    // }
+
+    auto& cur_frame_material_meshInnerId2ModelMatrices = frame_material_meshInnerId2ModelMatrices[currentFrame];
+    int curInstanceIndex = 0;
+
+    for (auto& pair : cur_frame_material_meshInnerId2ModelMatrices) {
         MaterialType materialType = pair.first;
-        VkPipeline graphicsPipeline = pair.second;
+        auto& meshInnerId2ModelMatrices = pair.second;
+        VkPipeline graphicsPipeline = material2Pipelines[materialType];
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-        frameRealDraw(commandBuffer, materialType);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material2PipelineLayouts[materialType], 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+
+        frameRealDraw(commandBuffer, curInstanceIndex, meshInnerId2ModelMatrices);
     }
-    
+
 
     // this is actually drawing
     // vkCmdDraw(commandBuffer,
@@ -283,11 +300,8 @@ void SceneViewer::framebufferResizeCallback(GLFWwindow* window, int width, int h
     app->framebufferResized = true;
 }
 
-void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, MaterialType materialType) {
-
-    auto& meshInnerId2ModelMatrices = frame_material_meshInnerId2ModelMatrices[currentFrame][materialType];
-    // for each mesh, draw the instance vertexs
-    int curInstanceIndex = 0;
+void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, int& currentInstanceIdx, const std::map<int, std::vector<cglm::Mat44f>>& meshInnerId2ModelMatrices) {
+    // std::cout << "MATERIAL: " << materialType << "\n";
 
     for (auto& p : meshInnerId2ModelMatrices) {
         int meshInnerId = p.first;
@@ -301,14 +315,18 @@ void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, MaterialType mate
         if (numInstances == 0) {
             continue;
         }
+
+        // std::cout << meshId << " " << numInstances << " " << vertexIndex << " " << curInstanceIndex << " | \n";
         vkCmdDraw(commandBuffer,
             static_cast<uint32_t>(vertexCount),      /* Vertex Count */
             numInstances,           /* Instance Count */
             vertexIndex,            /* First Vertex, defines lowest value of gl_VertexIndex */
-            curInstanceIndex        /* First Instance Index, defines lowest of gl_InstanceIndex */
+            currentInstanceIdx        /* First Instance Index, defines lowest of gl_InstanceIndex */
         );
-        curInstanceIndex += numInstances;
+        currentInstanceIdx += numInstances;
     }
+
+    // std::cout << std::endl;
 
     // // for each vertex, got all instance copy in this frame
     // std::vector<std::vector<cglm::Mat44f>> curFrameInstances = frame_instances[currentFrame];  // vector is mesh based
