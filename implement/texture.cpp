@@ -11,7 +11,7 @@ void SceneViewer::createTextureImagesWithViews() {
     // start with 2D's
     std::unordered_map<std::string, int> texture2D2Idx = scene_config.texture2D2Idx;
     for (auto& [file_name, idx] : texture2D2Idx) {
-        std::cout << "loading 2D texture " << file_name << " with idx " << idx << std::endl;
+        // std::cout << "loading 2D texture " << file_name << " with idx " << idx << std::endl;
         createTextureImage2D(file_name, idx);
         texture2DImageViews[idx] = createImageView2D(texture2DImages[idx], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     }
@@ -19,7 +19,7 @@ void SceneViewer::createTextureImagesWithViews() {
     // then cube's
     std::unordered_map<std::string, int> textureCube2Idx = scene_config.textureCube2Idx;
     for (auto& [file_name, idx] : textureCube2Idx) {
-        std::cout << "loading cube texture " << file_name << " with idx " << idx << std::endl;
+        // std::cout << "loading cube texture " << file_name << " with idx " << idx << std::endl;
         createTextureImageCube(file_name, idx);
         textureCubeImageViews[idx] = createImageViewCube(textureCubeImages[idx], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     }
@@ -64,7 +64,7 @@ void SceneViewer::createTextureImageCube(const std::string& file_name, int idx) 
     stbi_uc* pixels = stbi_load(file_name.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
-    std::cout << "texture image size: " << texWidth << "x" << texHeight << std::endl;
+    // std::cout << "texture image size: " << texWidth << "x" << texHeight << std::endl;
 
     if (!pixels) {
         throw std::runtime_error("Failed to load texture image!");
@@ -141,7 +141,7 @@ void SceneViewer::texturePrepare() {
     scene_config.textureCube2Idx[env->texture_src] = scene_config.textureCube2Idx.size();
 
     // then is a environment light sampler
-    scene_config.textureCube2Idx["textures/lambertian/out.lambertian.png"] = scene_config.textureCube2Idx.size();
+    scene_config.textureCube2Idx["textures/out.lambertian.png"] = scene_config.textureCube2Idx.size();
 
     // then for pbr
     for (int i = 0; i <= 10; i++) {
@@ -247,7 +247,7 @@ void SceneViewer::texturePrepare() {
         }
     }
 
-    std::cout << "2D has size " << scene_config.texture2D2Idx.size() << " and cube has size " << scene_config.textureCube2Idx.size() << std::endl;
+    // std::cout << "2D has size " << scene_config.texture2D2Idx.size() << " and cube has size " << scene_config.textureCube2Idx.size() << std::endl;
 
     // then resize the texture2D and textureCube
     int tex2DCount = scene_config.texture2D2Idx.size();

@@ -137,6 +137,12 @@ void SceneViewer::mainLoop() {
         setup_frame_instances(-1);
 
         drawFrame();
+        // get current time
+        // auto currentTime = std::chrono::high_resolution_clock::now();
+        // count int milliseconds
+        // double dtime = std::chrono::duration<double, std::chrono::milliseconds::period>(currentTime - startTime).count();
+        // std::cout << dtime << std::endl;
+        // startTime = currentTime;
     }
     vkDeviceWaitIdle(device);
 }
