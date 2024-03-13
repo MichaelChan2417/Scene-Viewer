@@ -307,6 +307,7 @@ public:
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
     static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
     // =================== inner functions ===================
     void setup_frame_instances(double inTime);
     void dfs_instance(int node_id, int currentFrame, cglm::Mat44f parent_transform);
