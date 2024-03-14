@@ -18,16 +18,28 @@ layout(location = 2) flat in InputBlock inputData;
 
 layout(location = 0) out vec4 outColor;
 
+float linear_to_srgb(float x) {
+    if (x <= 0.0031308) {
+		return x * 12.92;
+	} else {
+		return 1.055 * pow(x, (1/2.4)) - 0.055;
+	}
+}
+
 vec3 decodeRGBE(vec4 rgbe)
 {
     float exponent = rgbe.a * 255.0 - 128.0;
     float scale = pow(2.0, exponent);
-    return rgbe.rgb * scale;
+    vec3 res;
+    res.r = linear_to_srgb(rgbe.r) * scale;
+    res.g = linear_to_srgb(rgbe.g) * scale;
+    res.b = linear_to_srgb(rgbe.b) * scale;
+    return res;
 }
 
 void main() {
 
-    vec3 rNormal = fragNormal;
+    vec3 rNormal = normalize(fragNormal);
 
     if (inputData.inNormalMapIdx != -1) {
         vec4 mNormal = texture(tex2DSampler[inputData.inNormalMapIdx], fragTexCoord);
@@ -39,4 +51,5 @@ void main() {
     vec4 rgbeColor = texture(texCubeSampler[0], rNormal);
     vec3 decodedColor = decodeRGBE(rgbeColor);
     outColor = vec4(decodedColor, 1.0);
+    // outColor = vec4(rNormal, 1.0);
 }

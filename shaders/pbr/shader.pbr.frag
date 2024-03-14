@@ -38,7 +38,10 @@ vec3 decodeRGBE(vec4 rgbe)
 
     float exponent = av * 255.0 - 128.0;
     float scale = pow(2.0, exponent);
-    vec3 res = rgbe.rgb * scale;
+    vec3 res;
+    res.r = linear_to_srgb(rgbe.r) * scale;
+    res.g = linear_to_srgb(rgbe.g) * scale;
+    res.b = linear_to_srgb(rgbe.b) * scale;
     return res;
 }
 

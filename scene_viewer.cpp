@@ -121,9 +121,10 @@ void SceneViewer::initWindow() {
     window = glfwCreateWindow(window_width, window_height, "Michael_NICE_Window", nullptr, nullptr);
     glfwSetWindowUserPointer(window, this);
     // glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-    // glfwSetMouseButtonCallback(window, mouse_control_callback);
-    // glfwSetCursorPosCallback(window, cursor_position_callback);
+    glfwSetMouseButtonCallback(window, mouse_control_callback);
+    glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetKeyCallback(window, keyCallback);
+    glfwSetScrollCallback(window, scroll_callback);
 }
 
 void SceneViewer::mainLoop() {
@@ -137,6 +138,12 @@ void SceneViewer::mainLoop() {
         setup_frame_instances(-1);
 
         drawFrame();
+        // get current time
+        // auto currentTime = std::chrono::high_resolution_clock::now();
+        // count int milliseconds
+        // double dtime = std::chrono::duration<double, std::chrono::milliseconds::period>(currentTime - startTime).count();
+        // std::cout << dtime << std::endl;
+        // startTime = currentTime;
     }
     vkDeviceWaitIdle(device);
 }
@@ -290,17 +297,35 @@ void SceneViewer::mouse_control_callback(GLFWwindow* window, int button, int act
     }
 }
 
+void SceneViewer::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
+    
+    // only debug user & debug can be controlled
+    if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
+        return;
+    }
+
+    std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
+    cglm::Vec3f dir = normalize(camera->dir);
+
+    cglm::Vec3f new_pos = camera->position + dir * 0.1f * static_cast<float>(yoffset);
+    camera->position = new_pos;
+}
+
 void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+    // move will trigger this callback.
     if (leftMouseButtonPressed) {
         double deltaX = xpos - lastXPos;
         double deltaY = ypos - lastYPos;
 
-        lastXPos = xpos;
-        lastYPos = ypos;
+        glfwGetCursorPos(window, &lastXPos, &lastYPos);
 
-        if (deltaX == 0 || deltaY == 0) {
+        if (deltaX == 0 && deltaY == 0) {
             return;
         }
+
+        // std::cout << "lastX: " << deltaX << " lastY: " << deltaY << std::endl;
+
 
         auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
         // only debug user & debug can be controlled
@@ -308,28 +333,26 @@ void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, doub
             return;
         }
 
-        // std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
-        // // rotate around up axis
-        // cglm::Mat44f rot_up = cglm::rotate(camera->up, static_cast<float>(cglm::to_radians(5.0f) * deltaX));
-        // // need to calculate cross to get rotate2 axis
-        // cglm::Vec3f rot_axis = cglm::cross(camera->dir, camera->up);
-        // cglm::Mat44f rot2 = cglm::rotate(rot_axis, static_cast<float>(cglm::to_radians(5.0f) * deltaY));
+        std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
+        // rotate around up axis
+        cglm::Mat44f rot_up = cglm::rotate(camera->up, static_cast<float>(cglm::to_radians(0.1f) * deltaX));
+        // need to calculate cross to get rotate2 axis
+        cglm::Vec3f rot_axis = cglm::cross(camera->dir, camera->up);
+        cglm::Mat44f rot2 = cglm::rotate(rot_axis, static_cast<float>(cglm::to_radians(0.1f) * deltaY));
 
-        // cglm::Vec3f new_dir = rot_up * camera->dir;
-        // cglm::Vec3f new_up = rot2 * camera->up;
+        cglm::Vec3f new_dir = rot2 * rot_up * camera->dir;
+        cglm::Vec3f new_up = rot2 * camera->up;
 
         // std::cout << "New Up: " << new_up[0] << " " << new_up[1] << " " << new_up[2] << std::endl;
         // std::cout << "New Dir: " << new_dir[0] << " " << new_dir[1] << " " << new_dir[2] << std::endl;
 
-        // //if any value is nan, throw error
-        // if (std::isnan(new_up[0]) || std::isnan(new_up[1]) || std::isnan(new_up[2]) || std::isnan(new_dir[0]) || std::isnan(new_dir[1]) || std::isnan(new_dir[2])) {
-        //     throw std::runtime_error("NAN value detected in new_up or new_dir");
-        // }
+        //if any value is nan, throw error
+        if (std::isnan(new_up[0]) || std::isnan(new_up[1]) || std::isnan(new_up[2]) || std::isnan(new_dir[0]) || std::isnan(new_dir[1]) || std::isnan(new_dir[2])) {
+            throw std::runtime_error("NAN value detected in new_up or new_dir");
+        }
 
-        // camera->up = new_up;
-        // camera->dir = new_dir;
-
-        std::cout << "DeltaX: " << deltaX << " DeltaY: " << deltaY << std::endl;
+        camera->up = new_up;
+        camera->dir = new_dir;
     }
 }
 

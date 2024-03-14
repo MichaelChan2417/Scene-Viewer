@@ -42,7 +42,7 @@ void main() {
     outputData.textForm[0] = int(textureMapIdxs[2]);
     outputData.textForm[1] = int(textureMapIdxs[0]);
 
-    fragNormal = rNormal;
+    fragNormal = normalize(rNormal);
     outputData.outNormalMatrix = normalMatrix;
     outputData.outNormalMapIdx = int(inNormalMapIdx[0]);
 }

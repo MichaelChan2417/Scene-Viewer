@@ -30,6 +30,24 @@ std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_real_distribution<float> dis(0.0f, 1.0f);
 
+struct Progress {
+    static constexpr size_t LENGTH = 40;
+    Progress() {
+        for (uint32_t i = 0; i < LENGTH; ++i) std::cout << '.';
+        for (uint32_t i = 0; i < LENGTH; ++i) std::cout << '\b';
+        std::cout.flush();
+    }
+    void report(size_t step, size_t steps) {
+        while (step / float(steps) > p / float(LENGTH)) {
+            std::cout << '=';
+            std::cout.flush();
+            p += 1;
+        }
+    }
+    size_t p = 0;
+};
+
+
 int main(int argc, char** argv) {
     // format is: ./cube in.png --lambertian out.png
     if (argc != 3) {
@@ -372,10 +390,11 @@ void parse_lambertian(unsigned char* image_data, unsigned char* output_data, int
 
     // each outputdata's pixel is a 1 channel float value, of luminance
     // start by simply fill with 1.0f
-    for (int i = 0; i < WIDTH * WIDTH * 6 * 3; i++) {
+    for (int i = 0; i < WIDTH * WIDTH * 6 * 4; i++) {
         output_data[i] = 255;
     }
     float halfWidth = 0.5f * WIDTH;
+    Progress progress;
 
     for (int face = 0; face < 6; face++) {
         // each face is a WIDTH*WIDTH image
@@ -418,7 +437,10 @@ void parse_lambertian(unsigned char* image_data, unsigned char* output_data, int
                 // print to check
                 // std::cout << res.r << " " << res.g << " " << res.b << " " << res.a << std::endl;
             }
+
+            progress.report(y + face * WIDTH, WIDTH * 6);
         }
+
     }
 }
 
@@ -426,7 +448,7 @@ void parse_lambertian(unsigned char* image_data, unsigned char* output_data, int
 
 glm::vec4 hemi_integrate(unsigned char* image_data, int width, int height, glm::vec3& normal) {
     glm::vec3 result(0.0f);
-    int count = 0;
+    float count = 0.0f;
 
     normal = glm::normalize(normal);
 
@@ -475,7 +497,7 @@ glm::vec4 hemi_integrate(unsigned char* image_data, int width, int height, glm::
 
                     // accumulate the result - with ldexp
                     result += glm::vec3(r, g, b) * weight * ldexp(1.0f, e - 128);
-                    ++count;
+                    count += weight;
                 }
             }
         }
