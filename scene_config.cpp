@@ -417,6 +417,18 @@ namespace sconfig {
             return node;
         }
 
+        // translation could be applied to light
+        if (obj->contents.find("light") != obj->contents.end()) {
+            int light_id = static_cast<int>(std::get<double>(obj->contents.at("light")));
+            std::shared_ptr<Light> light = id2lights[light_id];
+            cglm::Vec4f npos = translate_m * cglm::Vec4f{ light->position, 1.0f };
+            light->position = { npos[0] / npos[3], npos[1] / npos[3], npos[2] / npos[3] };
+            light->direction = rotation_m * light->direction;
+            light->up = rotation_m * light->up;
+            // TODO: not sure if light could be combined with children?
+            return node;
+        }
+
         // then the rest are all cases to instances
         // node->transform = translate_m * rotation_m * scale_m;
         // node->animation_transform = cglm::identity(1.0f);
@@ -558,6 +570,60 @@ namespace sconfig {
         return cglm::identity(1.0f);
     }
 
+
+    std::shared_ptr<Light> SceneConfig::generateLight(const mcjp::Object* obj) {
+        std::shared_ptr<Light> light = std::make_shared<Light>();
+        light->name = std::get<std::string>(obj->contents.at("name"));
+        std::vector<double> ttint = std::get<std::vector<double>>(obj->contents.at("tint"));
+        for (int i = 0; i < 3; i++) {
+            light->tint[i] = static_cast<float>(ttint[i]);
+        }
+        light->shadow = std::get<double>(obj->contents.at("shadow"));
+        if (light->shadow == 0) {
+            return nullptr;
+        }
+        light->position = cglm::Vec3f{ 0.0f, 0.0f, 0.0f };
+        light->direction = cglm::Vec3f{ 0.0f, 0.0f, -1.0f };
+        light->up = cglm::Vec3f{ 0.0f, 1.0f, 0.0f };
+
+        // cases for types
+        if (obj->contents.find("sun") != obj->contents.end()) {
+            light->type = LightType::SUN;
+            mcjp::Object* sun = std::get<mcjp::Object*>(obj->contents.at("sun"));
+            Sun sun_data{};
+            sun_data.angle = static_cast<float>(std::get<double>(sun->contents.at("angle")));
+            sun_data.strength = static_cast<float>(std::get<double>(sun->contents.at("strength")));
+            light->data = sun_data;
+        }
+        else if (obj->contents.find("sphere") != obj->contents.end()) {
+            light->type = LightType::SPHERE;
+            mcjp::Object* point = std::get<mcjp::Object*>(obj->contents.at("sphere"));
+            Sphere sphere_data{};
+            sphere_data.radius = static_cast<float>(std::get<double>(point->contents.at("radius")));
+            sphere_data.power = static_cast<float>(std::get<double>(point->contents.at("power")));
+            sphere_data.limit = static_cast<float>(std::get<double>(point->contents.at("limit")));
+            light->data = sphere_data;
+        }
+        else if (obj->contents.find("spot") != obj->contents.end()) {
+            light->type = LightType::SPOT;
+            mcjp::Object* spot = std::get<mcjp::Object*>(obj->contents.at("spot"));
+            Spot spot_data{};
+            spot_data.radius = static_cast<float>(std::get<double>(spot->contents.at("radius")));
+            spot_data.power = static_cast<float>(std::get<double>(spot->contents.at("power")));
+            spot_data.fov = static_cast<float>(std::get<double>(spot->contents.at("fov")));
+            spot_data.blend = static_cast<float>(std::get<double>(spot->contents.at("blend")));
+            spot_data.limit = static_cast<float>(std::get<double>(spot->contents.at("limit")));
+            light->data = spot_data;
+        }
+
+        return light;
+    }
+
+
+    /** ----------------------------------------------
+     *              MAIN SCENE LOADER
+     ** ----------------------------------------------
+    */
     void SceneConfig::load_scene(const std::string& scene_file_name) {
         if (scene_file_name.empty()) {
             throw std::runtime_error("Scene File Name is Empty!");
@@ -619,6 +685,12 @@ namespace sconfig {
             else if (type == "environment" || type == "ENVIRONMENT") {
                 environment = generateEnvironment(obj);
             }
+            else if (type == "light" || type == "LIGHT") {
+                std::shared_ptr<Light> lightPtr = generateLight(obj);
+                if (lightPtr != nullptr) {
+                    id2lights[i] = lightPtr;
+                }
+            }
 
             if (cameras["debug"] == nullptr) {
                 // we create a default camera
@@ -653,6 +725,13 @@ namespace sconfig {
             }
         }
 
+        for (auto& [id, light] : id2lights) {
+            // print direction
+            std::cout << light->position[0] << " " << light->position[1] << " " << light->position[2] << std::endl;
+            std::cout << light->direction[0] << " " << light->direction[1] << " " << light->direction[2] << std::endl;
+            std::cout << std::endl;
+        }
+        
         // cleanups
         for (auto obj : objects) {
             obj->cleanup();

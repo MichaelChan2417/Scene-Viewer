@@ -9,7 +9,7 @@ void SceneViewer::createImageViews() {
 }
 
 VkImageView SceneViewer::createImageView2D(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
-    VkImageViewCreateInfo viewInfo{
+    VkImageViewCreateInfo viewInfo {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image = image,
         .viewType = VK_IMAGE_VIEW_TYPE_2D,
@@ -102,7 +102,7 @@ void SceneViewer::createDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding sampler2DLayoutBinding {
         .binding = 1,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = MAX_INSTANCE,       // TODO: the real binding count is the number of textures
+        .descriptorCount = MAX_INSTANCE,     
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .pImmutableSamplers = nullptr,
     };
@@ -110,10 +110,12 @@ void SceneViewer::createDescriptorSetLayout() {
     VkDescriptorSetLayoutBinding samplerCubeLayoutBinding {
         .binding = 2,
         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount = MAX_INSTANCE,       // TODO: the real binding count is the number of textures
+        .descriptorCount = MAX_INSTANCE,      
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
         .pImmutableSamplers = nullptr,
     };
+
+    // TODO: add shadow Maps
 
     std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, sampler2DLayoutBinding, samplerCubeLayoutBinding};
     
@@ -184,7 +186,7 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
 }
 
 void SceneViewer::createDescriptorPool() {
-
+    // TODO: need to add Light UniformBufferObject
     std::array<VkDescriptorPoolSize, 3> poolSizes{};
     poolSizes[0] = {
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -221,6 +223,7 @@ void SceneViewer::createDescriptorSets() {
     };
 
     descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+    // TODO: need to add Light DescriptorSets
     if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
@@ -285,9 +288,9 @@ void SceneViewer::createDescriptorSets() {
             .dstSet = descriptorSets[i],
             .dstBinding = 1,
             .dstArrayElement = 0,
-            .descriptorCount = MAX_INSTANCE,   // TODO: to be updated with imageInfo's size (2D)
+            .descriptorCount = MAX_INSTANCE,   
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .pImageInfo = image2DInfos.data(),   // TODO: to be updated with imageInfo (2D)
+            .pImageInfo = image2DInfos.data(),   
         };
 
         descriptorWrites[2] = {
@@ -295,9 +298,9 @@ void SceneViewer::createDescriptorSets() {
             .dstSet = descriptorSets[i],
             .dstBinding = 2,
             .dstArrayElement = 0,
-            .descriptorCount = MAX_INSTANCE,   // TODO: to be updated with imageInfo's size (Cube)
+            .descriptorCount = MAX_INSTANCE,   
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .pImageInfo = imageCubeInfos.data(),   // TODO: to be updated with imageInfo (Cube)
+            .pImageInfo = imageCubeInfos.data(),   
         };
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);

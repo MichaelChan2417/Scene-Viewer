@@ -227,9 +227,9 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
 }
 
 
-void SceneViewer::createRenderPass() {
+void SceneViewer::createRenderPass(VkFormat format, VkRenderPass& pRenderpass) {
     VkAttachmentDescription colorAttachment {
-        .format = swapChainImageFormat,
+        .format = format,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -287,7 +287,7 @@ void SceneViewer::createRenderPass() {
         .dependencyCount = 1,
         .pDependencies = &dependency,
     };
-    if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+    if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &pRenderpass) != VK_SUCCESS) {
         throw std::runtime_error("failed to create render pass!");
     }
 }

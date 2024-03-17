@@ -138,7 +138,10 @@ void SceneViewer::createTextureSampler() {
 void SceneViewer::texturePrepare() {
     // first is environment
     std::shared_ptr<sconfig::Environment> env = scene_config.environment;
-    scene_config.textureCube2Idx[env->texture_src] = scene_config.textureCube2Idx.size();
+    // env could be nullptr
+    if (env != nullptr) {
+        scene_config.textureCube2Idx[env->texture_src] = scene_config.textureCube2Idx.size();
+    }
 
     // then is a environment light sampler
     scene_config.textureCube2Idx["textures/out.lambertian.png"] = scene_config.textureCube2Idx.size();

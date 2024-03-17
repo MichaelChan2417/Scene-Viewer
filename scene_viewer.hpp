@@ -19,6 +19,7 @@
 #include "scene_config.hpp"
 
 const int MAX_INSTANCE = 128;
+const int MAX_LIGHT = 8;
 
 struct Vertex {
     cglm::Vec3f pos;
@@ -136,6 +137,15 @@ struct UniformBufferObject {
     cglm::Mat44f view;
     cglm::Mat44f proj;
     cglm::Mat44f instanceModels[MAX_INSTANCE];
+};
+
+struct LightUniformBufferObject {
+    cglm::Vec3f lightPos[MAX_LIGHT];
+    cglm::Vec3f lightColor[MAX_LIGHT];
+    cglm::Vec3f lightDir[MAX_LIGHT];
+    cglm::Vec3f lightUp[MAX_LIGHT];
+
+    cglm::Vec3f metadata;
 };
 
 extern std::vector<Vertex> static_vertices;
@@ -279,6 +289,22 @@ public:
     VkDeviceMemory colorImageMemory;
     VkImageView colorImageView;
 
+    // light corresponding
+    std::vector<VkImage> shadowMapImages;
+    std::vector<VkDeviceMemory> shadowMapImageMemorys;
+    std::vector<VkImageView> shadowMapImageViews;
+    VkSampler shadowMapSampler;
+    VkRenderPass shadowRenderPass;
+    std::vector<VkFramebuffer> shadowMapFramebuffers;
+    VkPipelineLayout shadowPipelineLayout;        
+    VkPipeline shadowGraphicsPipeline;
+    VkDescriptorSetLayout shadowDescriptorSetLayout;
+    std::vector<VkBuffer> shadowUniformBuffers;
+    std::vector<VkDeviceMemory> shadowUniformBuffersMemory;
+    std::vector<void*> shadowUniformBuffersMapped;
+    VkDescriptorPool shadowDescriptorPool;
+    std::vector<VkDescriptorSet> shadowDescriptorSets;
+
     // headless specs
     VkFramebuffer headlessFramebuffer;
     VkImage dstImage;
@@ -288,6 +314,7 @@ public:
     std::chrono::high_resolution_clock::time_point startTime;
 
     static bool leftMouseButtonPressed;
+    static bool rightMouseButtonPressed;
     static double lastXPos, lastYPos;
     bool animationPlay = false;
 
@@ -327,6 +354,20 @@ public:
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
     VkFormat findDepthFormat();
     bool hasStencilComponent(VkFormat format);
+
+    // light source management
+    void lightSetup();
+    void createLightResources();
+    void createShadowDescriptorSetLayout();
+    void createShadowGraphicsPipeline();
+    void createLightFrameBuffers();
+    void createLightImagewithViews();
+    void createShadowMapSampler();
+    void createLightUniformBuffers();
+    void createLightDescriptorPool();
+    void createLightDescriptorSets();
+    void updateLightUniformBuffer(uint32_t currentImage, int idx, int light_id);
+    void singleShadowRenderPass(VkCommandBuffer commandBuffer, int idx, int light_id);
 
     // texture
     void createTextureImage();
@@ -373,7 +414,7 @@ public:
     void createGraphicsPipeline(MaterialType mt);
     void createGraphicsPipelines();
     VkShaderModule createShaderModule(const std::vector<char>& code);
-    void createRenderPass();
+    void createRenderPass(VkFormat format, VkRenderPass& pRenderpass);
     void createHeadlessRenderPass();
 
     // image views

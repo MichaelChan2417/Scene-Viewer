@@ -5,6 +5,7 @@ std::vector<Vertex> static_vertices;
 std::vector<Vertex> indexed_vertices;
 
 bool SceneViewer::leftMouseButtonPressed = false;
+bool SceneViewer::rightMouseButtonPressed = false;
 double SceneViewer::lastXPos;
 double SceneViewer::lastYPos;
 
@@ -18,7 +19,7 @@ void SceneViewer::initVulkan() {
     createSwapChain();
     createImageViews();
 
-    createRenderPass();
+    createRenderPass(swapChainImageFormat, renderPass);
     createDescriptorSetLayout();
     createGraphicsPipelines();
     createCommandPool();
@@ -38,7 +39,8 @@ void SceneViewer::initVulkan() {
     createDescriptorSets();
     createCommandBuffers();
     createSyncObjects();
-    
+
+    createLightResources();
 }
 
 void SceneViewer::cleanup() {
@@ -113,6 +115,21 @@ void SceneViewer::cleanup() {
     glfwTerminate();
 }
 
+void SceneViewer::loadCheck() {
+    // initialize frame instances
+    frame_material_meshInnerId2ModelMatrices.resize(MAX_FRAMES_IN_FLIGHT);
+
+    texturePrepare();
+
+    std::cout << "In loadCheck(), we have " << scene_config.id2instance.size() << " instances" << std::endl;
+
+    // check if we have this camera
+    if (scene_config.cameras.find(scene_config.cur_camera) == scene_config.cameras.end()) {
+        throw std::runtime_error("Camera " + scene_config.cur_camera + " not found in scene file");
+    }
+    scene_config.cur_camera = camera_name;
+}
+
 void SceneViewer::initWindow() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -163,21 +180,6 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
     else {
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
-}
-
-void SceneViewer::loadCheck() {
-    // initialize frame instances
-    frame_material_meshInnerId2ModelMatrices.resize(MAX_FRAMES_IN_FLIGHT);
-
-    texturePrepare();
-
-    std::cout << "In loadCheck(), we have " << scene_config.id2instance.size() << " instances" << std::endl;
-
-    // check if we have this camera
-    if (scene_config.cameras.find(scene_config.cur_camera) == scene_config.cameras.end()) {
-        throw std::runtime_error("Camera " + scene_config.cur_camera + " not found in scene file");
-    }
-    scene_config.cur_camera = camera_name;
 }
 
 void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -295,11 +297,20 @@ void SceneViewer::mouse_control_callback(GLFWwindow* window, int button, int act
             leftMouseButtonPressed = false;
         }
     }
+    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+        if (action == GLFW_PRESS) {
+            rightMouseButtonPressed = true;
+            glfwGetCursorPos(window, &lastXPos, &lastYPos);
+        }
+        else if (action == GLFW_RELEASE) {
+            rightMouseButtonPressed = false;
+        }
+    }
 }
 
 void SceneViewer::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
-    
+
     // only debug user & debug can be controlled
     if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
         return;
@@ -313,27 +324,36 @@ void SceneViewer::scroll_callback(GLFWwindow* window, double xoffset, double yof
 }
 
 void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+    double deltaX = xpos - lastXPos;
+    double deltaY = ypos - lastYPos;
+
+    glfwGetCursorPos(window, &lastXPos, &lastYPos);
+
+    if (deltaX == 0 && deltaY == 0) {
+        return;
+    }
+
+    auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
+    // only debug user & debug can be controlled
+    if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
+        return;
+    }
+
+    std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
+
+    // camera moving
+    if (leftMouseButtonPressed && rightMouseButtonPressed) {
+        // move up and down
+        cglm::Vec3f dir_axis = normalize(camera->up);
+        cglm::Vec3f new_pos = camera->position + dir_axis * 0.01f * static_cast<float>(deltaY);
+        // move left and right
+        cglm::Vec3f right_axis = normalize(cglm::cross(camera->dir, camera->up));
+        new_pos = new_pos - right_axis * 0.01f * static_cast<float>(deltaX);
+        camera->position = new_pos;
+    }
+
     // move will trigger this callback.
-    if (leftMouseButtonPressed) {
-        double deltaX = xpos - lastXPos;
-        double deltaY = ypos - lastYPos;
-
-        glfwGetCursorPos(window, &lastXPos, &lastYPos);
-
-        if (deltaX == 0 && deltaY == 0) {
-            return;
-        }
-
-        // std::cout << "lastX: " << deltaX << " lastY: " << deltaY << std::endl;
-
-
-        auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
-        // only debug user & debug can be controlled
-        if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
-            return;
-        }
-
-        std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
+    else if (leftMouseButtonPressed) {
         // rotate around up axis
         cglm::Mat44f rot_up = cglm::rotate(camera->up, static_cast<float>(cglm::to_radians(0.1f) * deltaX));
         // need to calculate cross to get rotate2 axis
@@ -342,9 +362,6 @@ void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, doub
 
         cglm::Vec3f new_dir = rot2 * rot_up * camera->dir;
         cglm::Vec3f new_up = rot2 * camera->up;
-
-        // std::cout << "New Up: " << new_up[0] << " " << new_up[1] << " " << new_up[2] << std::endl;
-        // std::cout << "New Dir: " << new_dir[0] << " " << new_dir[1] << " " << new_dir[2] << std::endl;
 
         //if any value is nan, throw error
         if (std::isnan(new_up[0]) || std::isnan(new_up[1]) || std::isnan(new_up[2]) || std::isnan(new_dir[0]) || std::isnan(new_dir[1]) || std::isnan(new_dir[2])) {

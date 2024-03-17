@@ -9,7 +9,7 @@ void SceneViewer::createFramebuffers() {
             depthImageView
         };
 
-        VkFramebufferCreateInfo framebufferInfo{
+        VkFramebufferCreateInfo framebufferInfo {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .renderPass = renderPass,
             .attachmentCount = static_cast<uint32_t>(attachments.size()),
@@ -120,11 +120,24 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
         throw std::runtime_error("failed to begin recording command buffer!");
     }
 
+    // first make the update, for both rendering use
+    updateUniformBuffer(currentFrame);
+
     // begin drawing, (render pass)
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{1.0f, 0.5976f, 1.0f, 1.0f}};
+    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
+    // TODO: instead, I begin a render pass for shadow map
+    int lidx = 0;
+    for (auto& [id, light] : scene_config.id2lights) {
+        updateLightUniformBuffer(currentFrame, lidx, id);
+
+        singleShadowRenderPass(commandBuffer, lidx, id);
+        ++lidx;
+    }
+    
+    // content drawing
     VkRenderPassBeginInfo renderPassInfo {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         .renderPass = renderPass,
@@ -139,7 +152,7 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     // some pre-sets
-    VkViewport viewport{
+    VkViewport viewport {
         .x = 0.0f,
         .y = 0.0f,
         .width = static_cast<float>(swapChainExtent.width),
@@ -154,19 +167,6 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
     VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};
-
-    // bind graphics pipeline -> multiple times
-    // for (auto& pair : material2Pipelines) {
-    //     MaterialType materialType = pair.first;
-    //     VkPipeline graphicsPipeline = pair.second;
-
-    //     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    //     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-    //     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-    //     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    //     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material2PipelineLayouts[materialType], 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-    //     frameRealDraw(commandBuffer, materialType);
-    // }
 
     auto& cur_frame_material_meshInnerId2ModelMatrices = frame_material_meshInnerId2ModelMatrices[currentFrame];
     int curInstanceIndex = 0;
@@ -243,14 +243,11 @@ void SceneViewer::drawFrame() {
     // } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     //     throw std::runtime_error("failed to acquire swap chain image!");
     // }
-
-    updateUniformBuffer(currentFrame);
     
     // Only reset the fence if we are submitting work
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
-
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
     // submit command buffer to graphics queue
