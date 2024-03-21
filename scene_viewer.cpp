@@ -457,9 +457,10 @@ void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f paren
             ++ii;
         }
 
-        if (!visible) {
-            continue;
-        }
+        // if (!visible) {
+        //     // std::cout << "Mesh " << mesh_id << " is not visible" << std::endl;
+        //     continue;
+        // }
 
         // based on material & mesh, insert it
         int material_id = scene_config.id2mesh[mesh_id]->material_id;

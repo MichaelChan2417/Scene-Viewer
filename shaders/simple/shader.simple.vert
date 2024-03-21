@@ -29,7 +29,10 @@ void main() {
     worldPos = tr_pos.xyz;
 
 
-
+    // float depth = length(vec3(12,0,5) - tr_pos.xyz);
+    // limit is at index-2
+    // float d_val = depth / 100.0;
+    // fragColor = vec3(d_val, d_val, d_val);
     // check
     
 

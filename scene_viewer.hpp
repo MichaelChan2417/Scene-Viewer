@@ -140,14 +140,15 @@ struct UniformBufferObject {
 };
 
 struct LightUniformBufferObject {
-    cglm::Vec4f lightPos[MAX_LIGHT];
-    cglm::Vec4f lightColor[MAX_LIGHT];
+    alignas(16)cglm::Vec4f lightPos[MAX_LIGHT];
+    alignas(16)cglm::Vec4f lightDir[MAX_LIGHT];
+    alignas(16)cglm::Vec4f lightColor[MAX_LIGHT];
 
-    cglm::Mat44f lightViewMatrix[MAX_LIGHT];
-    cglm::Mat44f lightProjMatrix[MAX_LIGHT];
+    alignas(16)cglm::Mat44f lightViewMatrix[MAX_LIGHT];
+    alignas(16)cglm::Mat44f lightProjMatrix[MAX_LIGHT];
 
-    cglm::Vec4f metadata1[MAX_LIGHT];
-    cglm::Vec4f metadata2[MAX_LIGHT];
+    alignas(16)cglm::Vec4f metadata1[MAX_LIGHT];
+    alignas(16)cglm::Vec4f metadata2[MAX_LIGHT];
 };
 
 extern std::vector<Vertex> static_vertices;

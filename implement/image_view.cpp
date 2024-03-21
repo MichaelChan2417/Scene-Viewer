@@ -176,9 +176,37 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
     cglm::Vec3f view_point = camera->position + camera->dir;
     ubo.view = cglm::lookAt(camera_pos, view_point, camera->up);
 
+    // ubo.view[0][0] = 0;
+    // ubo.view[0][1] = 0;
+    // ubo.view[0][2] = 1;
+    // ubo.view[0][3] = 0;
+    // ubo.view[1][0] = 1;
+    // ubo.view[1][1] = 0;
+    // ubo.view[1][2] = 0;
+    // ubo.view[1][3] = 0;
+    // ubo.view[2][0] = 0;
+    // ubo.view[2][1] = 1;
+    // ubo.view[2][2] = 0;
+    // ubo.view[2][3] = 0;
+    // ubo.view[3][0] = 0;
+    // ubo.view[3][1] = -5;
+    // ubo.view[3][2] = -12;
+    // ubo.view[3][3] = 1;
+
     // ubo's projection is based on current camera
     ubo.proj = cglm::perspective(camera->vfov, camera->aspect, camera->near, camera->far);
     ubo.proj[1][1] *= -1;
+
+    // for (int k=0; k<4; k++) {
+    //     for (int j=0; j<4; j++) {
+    //         ubo.proj[k][j] = 0;
+    //     }
+    // }
+    // ubo.proj[0][0] = 0.57735f;
+    // ubo.proj[1][1] = -0.57735f;
+    // ubo.proj[2][2] = -1.0f;
+    // ubo.proj[2][3] = -1.0f;
+    // ubo.proj[3][2] = -0.2f;
 
     // ubo.view = cglm::lookAt(cglm::Vec3f(2.0f, 2.0f, 2.0f), cglm::Vec3f(0.0f, 0.0f, 0.0f), cglm::Vec3f(0.0f, 0.0f, 1.0f));
     // ubo.proj = cglm::perspective(cglm::to_radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
@@ -197,6 +225,7 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
             }
         }
     }
+
 
     memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }

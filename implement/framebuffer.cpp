@@ -311,7 +311,7 @@ void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, int& currentInsta
         int numInstances = modelMatrices.size();
         // vertexIndex is the offset
         int vertexIndex = meshInnerId2Offset[meshInnerId];
-
+        // std::cout << vertexCount << " " << numInstances << " " << vertexIndex << " " << currentInstanceIdx << " | \n";
         if (numInstances == 0) {
             continue;
         }

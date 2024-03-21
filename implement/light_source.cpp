@@ -105,30 +105,50 @@ void SceneViewer::updateLightUniformBuffer(uint32_t currentImage, int idx, int l
             sconfig::Spot spot_data = std::get<sconfig::Spot>(clight->data);
 
             lubo.lightPos[tidx] = cglm::Vec4f(light->position, 1.0f);
+            lubo.lightDir[tidx] = cglm::Vec4f(light->direction, 0.0f);
             lubo.lightColor[tidx] = cglm::Vec4f(light->tint[0], light->tint[1], light->tint[2], 1.0f);
+
+            // std::cout << "Light Position: " << light->position << std::endl;
+            // std::cout << "Light Direction: " << light->direction << std::endl;
+            // std::cout << "Light Up: " << light->up << std::endl;
 
             cglm::Vec3f view_point = light->position + light->direction;
             cglm::Mat44f view_mat = cglm::lookAt(light->position, view_point, light->up);
             lubo.lightViewMatrix[tidx] = view_mat;
 
+            // for (int k = 0; k < 4; k++) {
+            //     for (int l = 0; l < 4; l++) {
+            //         std::cout << view_mat[k][l] << " ";
+            //     }
+            //     std::cout << std::endl;
+            // }
+            //     std::cout << "PROJ" << std::endl;
+
             cglm::Mat44f proj_mat = cglm::perspective(spot_data.fov, 1.0f, 0.1f, spot_data.limit);
             proj_mat[1][1] *= -1;
             lubo.lightProjMatrix[tidx] = proj_mat;
+
+            // for (int k = 0; k < 4; k++) {
+            //     for (int l = 0; l < 4; l++) {
+            //         std::cout << proj_mat[k][l] << " ";
+            //     }
+            //     std::cout << std::endl;
+            // }
+            //     std::cout << std::endl;
 
             float radius = spot_data.radius;
             float fov = spot_data.fov;
             float limit = spot_data.limit;
             float blend = spot_data.blend;
-            lubo.metadata1[tidx] = cglm::Vec4f(radius, fov, limit, blend);
+            lubo.metadata1[tidx] = cglm::Vec4f(radius, fov/2.0f, limit, blend);
 
         }
 
     
         ++tidx;
     }
-
     
-    
+    lubo.metadata2[0][0] = static_cast<float>(0);
 
     memcpy(shadowUniformBuffersMapped[currentImage], &lubo, sizeof(lubo));
 }
@@ -357,8 +377,8 @@ void SceneViewer::createShadowGraphicsPipeline() {
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode = VK_POLYGON_MODE_FILL,
         .cullMode = VK_CULL_MODE_NONE,              // backside culling -> VK_CULL_MODE_FRONT_BIT
-        .frontFace = VK_FRONT_FACE_CLOCKWISE,
-        // .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        // .frontFace = VK_FRONT_FACE_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
         .lineWidth = 1.0f,
     };
