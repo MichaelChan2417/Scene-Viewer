@@ -140,12 +140,14 @@ struct UniformBufferObject {
 };
 
 struct LightUniformBufferObject {
-    cglm::Vec3f lightPos[MAX_LIGHT];
-    cglm::Vec3f lightColor[MAX_LIGHT];
-    cglm::Vec3f lightDir[MAX_LIGHT];
-    cglm::Vec3f lightUp[MAX_LIGHT];
+    cglm::Vec4f lightPos[MAX_LIGHT];
+    cglm::Vec4f lightColor[MAX_LIGHT];
 
-    cglm::Vec3f metadata;
+    cglm::Mat44f lightViewMatrix[MAX_LIGHT];
+    cglm::Mat44f lightProjMatrix[MAX_LIGHT];
+
+    cglm::Vec4f metadata1[MAX_LIGHT];
+    cglm::Vec4f metadata2[MAX_LIGHT];
 };
 
 extern std::vector<Vertex> static_vertices;
@@ -414,7 +416,7 @@ public:
     void createGraphicsPipeline(MaterialType mt);
     void createGraphicsPipelines();
     VkShaderModule createShaderModule(const std::vector<char>& code);
-    void createRenderPass(VkFormat format, VkRenderPass& pRenderpass);
+    void createRenderPass(VkFormat format, VkRenderPass& pRenderpass, VkImageLayout colorFinalLayout);
     void createHeadlessRenderPass();
 
     // image views

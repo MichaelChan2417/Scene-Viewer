@@ -19,28 +19,45 @@ void SceneViewer::initVulkan() {
     createSwapChain();
     createImageViews();
 
-    createRenderPass(swapChainImageFormat, renderPass);
+    // something should also pull ahead
+
+
+    createRenderPass(swapChainImageFormat, renderPass, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    std::cout << 0 << std::endl;
     createDescriptorSetLayout();
+    std::cout << 1 << std::endl;
     createGraphicsPipelines();
+    std::cout << 2 << std::endl;
     createCommandPool();
+    std::cout << 3 << std::endl;
     createDepthResources();
+    std::cout << 4 << std::endl;
     createFramebuffers();
 
     // createTextureImage();
     // createTextureImageView();
     createTextureImagesWithViews();
+    std::cout << 5 << std::endl;
     createTextureSampler();
+    std::cout << 6 << std::endl;
 
     createVertexBuffer();
+    std::cout << 7 << std::endl;
     createIndexBuffer();
     createUniformBuffers();
 
-    createDescriptorPool();
-    createDescriptorSets();
-    createCommandBuffers();
-    createSyncObjects();
-
+    // Light resources should pull ahead!!!
     createLightResources();
+
+    createDescriptorPool();
+    std::cout << 8 << std::endl;
+    createDescriptorSets();
+    std::cout << 9 << std::endl;
+    createCommandBuffers();
+    std::cout << 10 << std::endl;
+    createSyncObjects();
+    std::cout << 11 << std::endl;
+
 }
 
 void SceneViewer::cleanup() {

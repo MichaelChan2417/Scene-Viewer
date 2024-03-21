@@ -7,7 +7,7 @@ void SceneViewer::lightSetup() {
     shadowMapFramebuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     std::cout << "i1" << std::endl;
-    createRenderPass(VK_FORMAT_R32G32B32A32_SFLOAT, shadowRenderPass);
+    createRenderPass(VK_FORMAT_R32G32B32A32_SFLOAT, shadowRenderPass, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     std::cout << "i2" << std::endl;
     createShadowDescriptorSetLayout();
     std::cout << "i3" << std::endl;
@@ -24,6 +24,7 @@ void SceneViewer::lightSetup() {
     createLightDescriptorPool();
     std::cout << "i9" << std::endl;
     createLightDescriptorSets();
+    std::cout << "i10" << std::endl;
 }
 
 
@@ -96,20 +97,38 @@ void SceneViewer::updateLightUniformBuffer(uint32_t currentImage, int idx, int l
     LightUniformBufferObject lubo{};
 
     std::shared_ptr<sconfig::Light> clight = scene_config.id2lights[light_id];
-    // TODO: maybe I could only have one light source?
     int tidx = 0;
     for (auto& [id, light] : scene_config.id2lights) {
-        lubo.lightPos[tidx] = light->position;
-        lubo.lightColor[tidx] = cglm::Vec3f(light->tint[0], light->tint[1], light->tint[2]);
-        lubo.lightDir[tidx] = light->direction;
-        lubo.lightUp[tidx] = light->up;
+
+        // Spot Case
+        if (std::holds_alternative<sconfig::Spot>(clight->data)) {
+            sconfig::Spot spot_data = std::get<sconfig::Spot>(clight->data);
+
+            lubo.lightPos[tidx] = cglm::Vec4f(light->position, 1.0f);
+            lubo.lightColor[tidx] = cglm::Vec4f(light->tint[0], light->tint[1], light->tint[2], 1.0f);
+
+            cglm::Vec3f view_point = light->position + light->direction;
+            cglm::Mat44f view_mat = cglm::lookAt(light->position, view_point, light->up);
+            lubo.lightViewMatrix[tidx] = view_mat;
+
+            cglm::Mat44f proj_mat = cglm::perspective(spot_data.fov, 1.0f, 0.1f, spot_data.limit);
+            proj_mat[1][1] *= -1;
+            lubo.lightProjMatrix[tidx] = proj_mat;
+
+            float radius = spot_data.radius;
+            float fov = spot_data.fov;
+            float limit = spot_data.limit;
+            float blend = spot_data.blend;
+            lubo.metadata1[tidx] = cglm::Vec4f(radius, fov, limit, blend);
+
+        }
+
+    
         ++tidx;
     }
 
-    sconfig::Spot spot_data = std::get<sconfig::Spot>(clight->data);
-    float fov = spot_data.fov;
-    float limit = spot_data.limit;
-    lubo.metadata = cglm::Vec3f(static_cast<float>(idx), fov / 2.0f, limit);
+    
+    
 
     memcpy(shadowUniformBuffersMapped[currentImage], &lubo, sizeof(lubo));
 }
@@ -136,7 +155,7 @@ void SceneViewer::createLightDescriptorSets() {
             .range = sizeof(LightUniformBufferObject),
         };
 
-        VkDescriptorBufferInfo bufferInfo2{
+        VkDescriptorBufferInfo bufferInfo2 {
             .buffer = uniformBuffers[i],
             .offset = 0,
             .range = sizeof(UniformBufferObject),
@@ -264,6 +283,7 @@ void SceneViewer::createLightFrameBuffers() {
             depthImageView
         };
 
+        // std::cout << idx << std::endl;
         // I need to get
         VkFramebufferCreateInfo framebufferInfo {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -275,10 +295,12 @@ void SceneViewer::createLightFrameBuffers() {
             .layers = 1,
         };
 
+        // std::cout << "pass" << std::endl;
         if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &shadowMapFramebuffers[idx]) != VK_SUCCESS) {
             throw std::runtime_error("failed to create framebuffer!");
         }
         ++idx;
+        // std::cout << "pass2" << std::endl;
     }
 
 }
@@ -334,9 +356,9 @@ void SceneViewer::createShadowGraphicsPipeline() {
         .depthClampEnable = VK_FALSE,
         .rasterizerDiscardEnable = VK_FALSE,
         .polygonMode = VK_POLYGON_MODE_FILL,
-        .cullMode = VK_CULL_MODE_NONE,              // backside culling
-        .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-        // .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        .cullMode = VK_CULL_MODE_NONE,              // backside culling -> VK_CULL_MODE_FRONT_BIT
+        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        // .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
         .lineWidth = 1.0f,
     };

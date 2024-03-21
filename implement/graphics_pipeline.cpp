@@ -227,7 +227,7 @@ void SceneViewer::createGraphicsPipeline(MaterialType material_type) {
 }
 
 
-void SceneViewer::createRenderPass(VkFormat format, VkRenderPass& pRenderpass) {
+void SceneViewer::createRenderPass(VkFormat format, VkRenderPass& pRenderpass, VkImageLayout colorFinalLayout) {
     VkAttachmentDescription colorAttachment {
         .format = format,
         .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -236,7 +236,7 @@ void SceneViewer::createRenderPass(VkFormat format, VkRenderPass& pRenderpass) {
         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        .finalLayout = colorFinalLayout,
     };
 
     VkAttachmentReference colorAttachmentRef {

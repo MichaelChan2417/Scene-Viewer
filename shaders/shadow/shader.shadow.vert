@@ -4,12 +4,14 @@ const int MAX_LIGHT = 8;
 const int MAX_INSTANCE = 128;
 
 layout(binding = 0) uniform LightUniformBufferObject {
-    vec3 lightPos[MAX_LIGHT];
-    vec3 lightColor[MAX_LIGHT];
-    vec3 lightDir[MAX_LIGHT];
-    vec3 lightUp[MAX_LIGHT];
+    vec4 lightPos[MAX_LIGHT];
+    vec4 lightColor[MAX_LIGHT];
 
-    vec3 metadata;
+    mat4 lightViewMatrix[MAX_LIGHT];
+    mat4 lightProjMatrix[MAX_LIGHT];
+
+    vec4 metadata1[MAX_LIGHT];
+    vec4 metadata2[MAX_LIGHT];
 } lubo;
 
 layout(binding = 1) uniform UniformBufferObject {
@@ -31,9 +33,9 @@ void main() {
     vec4 tr_pos = ubo.instanceModels[gl_InstanceIndex] * vec4(inPosition, 1.0);
 
     int lightIdx = int(lubo.metadata[0]);
-    vec3 curLightPos = lubo.lightPos[lightIdx];
-    vec3 curLightDir = lubo.lightDir[lightIdx];
-    vec3 curLightUp = lubo.lightUp[lightIdx];
+    vec3 curLightPos = lubo.lightPos[lightIdx].xyz;
+    vec3 curLightDir = lubo.lightDir[lightIdx].xyz;
+    vec3 curLightUp = lubo.lightUp[lightIdx].xyz;
 
     // calculating distance
     vec3 ptr = tr_pos.xyz - curLightPos;
@@ -42,7 +44,7 @@ void main() {
 
     float viewAngle = acos(dot(normalize(ptr), curLightDir));
     if (viewAngle > halfFov) {
-        gl_Position = vec4(-1000, -1000, -1000, 1.0);  // some place never render
+        gl_Position = vec4(-1000, -1000, -100.0, 1.0);  // some place never render
     }
     else {
         vec3 curLightRight = cross(curLightDir, curLightUp);
@@ -54,6 +56,7 @@ void main() {
         float cosU = -dot(planeVec, curLightUp);
 
         float depth = distance / lubo.metadata[2];
+        // float depth = distance;
         gl_Position = vec4(targetRadius*cosR, targetRadius*cosU, depth, 1.0);
         fragColor = vec3(depth, depth, depth);
     }

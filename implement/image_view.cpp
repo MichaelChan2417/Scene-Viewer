@@ -77,7 +77,7 @@ void SceneViewer::createImage(uint32_t width, uint32_t height, VkImageCreateFlag
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(device, image, &memRequirements);
 
-    VkMemoryAllocateInfo allocInfo{
+    VkMemoryAllocateInfo allocInfo {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         .allocationSize = memRequirements.size,
         .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties),
@@ -115,10 +115,26 @@ void SceneViewer::createDescriptorSetLayout() {
         .pImmutableSamplers = nullptr,
     };
 
-    // TODO: add shadow Maps
+    // first is the Light Source UBO
+    VkDescriptorSetLayoutBinding fragLightUBOLayoutBinding {
+        .binding = 3,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1,      
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .pImmutableSamplers = nullptr,
+    };
+    // then is the shadow map sampler2D
+    VkDescriptorSetLayoutBinding shadowMapLayoutBinding {
+        .binding = 4,
+        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = MAX_LIGHT,      
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .pImmutableSamplers = nullptr,
+    };
 
-    std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, sampler2DLayoutBinding, samplerCubeLayoutBinding};
-    
+    std::array<VkDescriptorSetLayoutBinding, 5> bindings = { uboLayoutBinding, sampler2DLayoutBinding,
+        samplerCubeLayoutBinding, fragLightUBOLayoutBinding, shadowMapLayoutBinding };
+
     VkDescriptorSetLayoutCreateInfo layoutInfo {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
         .bindingCount = static_cast<uint32_t>(bindings.size()),
@@ -186,8 +202,7 @@ void SceneViewer::updateUniformBuffer(uint32_t currentImage) {
 }
 
 void SceneViewer::createDescriptorPool() {
-    // TODO: need to add Light UniformBufferObject
-    std::array<VkDescriptorPoolSize, 3> poolSizes{};
+    std::array<VkDescriptorPoolSize, 5> poolSizes{};
     poolSizes[0] = {
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
@@ -197,6 +212,14 @@ void SceneViewer::createDescriptorPool() {
         .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
     };
     poolSizes[2] = {
+        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+    };
+    poolSizes[3] = {
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+    };
+    poolSizes[4] = {
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
         .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
     };
@@ -223,7 +246,6 @@ void SceneViewer::createDescriptorSets() {
     };
 
     descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    // TODO: need to add Light DescriptorSets
     if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
@@ -233,6 +255,11 @@ void SceneViewer::createDescriptorSets() {
             .buffer = uniformBuffers[i],
             .offset = 0,
             .range = sizeof(UniformBufferObject),
+        };
+        VkDescriptorBufferInfo bufferInfo2 {
+            .buffer = shadowUniformBuffers[i],
+            .offset = 0,
+            .range = sizeof(LightUniformBufferObject),
         };
 
         std::vector<VkDescriptorImageInfo> image2DInfos(MAX_INSTANCE);
@@ -271,7 +298,26 @@ void SceneViewer::createDescriptorSets() {
             imageCubeInfos[j] = imageInfo;
         }
 
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+        std::vector<VkDescriptorImageInfo> shadow2DInfos(MAX_LIGHT);
+        for (int j=0; j<shadowMapImageViews.size(); j++) {
+            VkDescriptorImageInfo imageInfo {
+                .sampler = shadowMapSampler,
+                .imageView = shadowMapImageViews[j],
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            };
+            shadow2DInfos[j] = imageInfo;
+        }
+        for (int j=shadowMapImageViews.size(); j<MAX_LIGHT; j++) {
+            VkDescriptorImageInfo imageInfo {
+                .sampler = shadowMapSampler,
+                .imageView = shadowMapImageViews[0],
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            };
+            shadow2DInfos[j] = imageInfo;
+        }
+
+        // descriptor WRITEs
+        std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
 
         descriptorWrites[0] = {
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -301,6 +347,25 @@ void SceneViewer::createDescriptorSets() {
             .descriptorCount = MAX_INSTANCE,   
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .pImageInfo = imageCubeInfos.data(),   
+        };
+
+        descriptorWrites[3] = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = descriptorSets[i],
+            .dstBinding = 3,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pBufferInfo = &bufferInfo2, 
+        };
+        descriptorWrites[4] = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = descriptorSets[i],
+            .dstBinding = 4,
+            .dstArrayElement = 0,
+            .descriptorCount = MAX_LIGHT,   
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo = shadow2DInfos.data(),   
         };
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
