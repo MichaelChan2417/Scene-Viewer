@@ -38,7 +38,11 @@ void SceneViewer::singleShadowRenderPass(VkCommandBuffer commandBuffer, int idx,
     std::shared_ptr<sconfig::Light> light = scene_config.id2lights[light_id];
 
     uint32_t shadow_width = static_cast<uint32_t>(light->shadow);
-    VkExtent2D shadowExtent = { shadow_width, shadow_width };
+    uint32_t shadow_height = shadow_width;
+    if (light->type == sconfig::LightType::SPHERE) {
+        shadow_height *= 6;
+    }
+    VkExtent2D shadowExtent = { shadow_width, shadow_height };
 
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {{1.0f, 1.0f, 1.0f, 1.0f}};
@@ -100,13 +104,13 @@ void SceneViewer::updateLightUniformBuffer(uint32_t currentImage, int idx, int l
     int tidx = 0;
     for (auto& [id, light] : scene_config.id2lights) {
 
+        lubo.lightPos[tidx] = cglm::Vec4f(light->position, 0.0f);       // last bit is type
+        lubo.lightDir[tidx] = cglm::Vec4f(light->direction, 0.0f);
+        lubo.lightColor[tidx] = cglm::Vec4f(light->tint[0], light->tint[1], light->tint[2], 1.0f);
+
         // Spot Case
         if (std::holds_alternative<sconfig::Spot>(clight->data)) {
             sconfig::Spot spot_data = std::get<sconfig::Spot>(clight->data);
-
-            lubo.lightPos[tidx] = cglm::Vec4f(light->position, 1.0f);
-            lubo.lightDir[tidx] = cglm::Vec4f(light->direction, 0.0f);
-            lubo.lightColor[tidx] = cglm::Vec4f(light->tint[0], light->tint[1], light->tint[2], 1.0f);
 
             // std::cout << "Light Position: " << light->position << std::endl;
             // std::cout << "Light Direction: " << light->direction << std::endl;
@@ -116,25 +120,9 @@ void SceneViewer::updateLightUniformBuffer(uint32_t currentImage, int idx, int l
             cglm::Mat44f view_mat = cglm::lookAt(light->position, view_point, light->up);
             lubo.lightViewMatrix[tidx] = view_mat;
 
-            // for (int k = 0; k < 4; k++) {
-            //     for (int l = 0; l < 4; l++) {
-            //         std::cout << view_mat[k][l] << " ";
-            //     }
-            //     std::cout << std::endl;
-            // }
-            //     std::cout << "PROJ" << std::endl;
-
             cglm::Mat44f proj_mat = cglm::perspective(spot_data.fov, 1.0f, 0.1f, spot_data.limit);
             proj_mat[1][1] *= -1;
             lubo.lightProjMatrix[tidx] = proj_mat;
-
-            // for (int k = 0; k < 4; k++) {
-            //     for (int l = 0; l < 4; l++) {
-            //         std::cout << proj_mat[k][l] << " ";
-            //     }
-            //     std::cout << std::endl;
-            // }
-            //     std::cout << std::endl;
 
             float radius = spot_data.radius;
             float fov = spot_data.fov;
@@ -144,11 +132,22 @@ void SceneViewer::updateLightUniformBuffer(uint32_t currentImage, int idx, int l
 
         }
 
+        else if (std::holds_alternative<sconfig::Sphere>(clight->data)) {
+            sconfig::Sphere sphere_data = std::get<sconfig::Sphere>(clight->data);
+
+            lubo.lightPos[tidx] = cglm::Vec4f(light->position, 1.0f);     // last bit is type
+
+            float radius = sphere_data.radius;
+            float limit = sphere_data.limit;
+
+            lubo.metadata1[tidx] = cglm::Vec4f(radius, limit, 0.0f, 0.0f);
+        }
+
     
         ++tidx;
     }
     
-    lubo.metadata2[0][0] = static_cast<float>(0);
+    lubo.metadata2[0][0] = static_cast<float>(idx);
 
     memcpy(shadowUniformBuffersMapped[currentImage], &lubo, sizeof(lubo));
 }
@@ -283,10 +282,28 @@ void SceneViewer::createLightImagewithViews() {
     shadowMapImageViews.resize(light_count);
     shadowMapImageMemorys.resize(light_count);
 
+    shadowDepthImages.resize(light_count);
+    shadowDepthImageViews.resize(light_count);
+    shadowDepthImageMemorys.resize(light_count);
+
     int idx = 0;
+    VkFormat depthFormat = findDepthFormat();
     for (auto& [id, light] : scene_config.id2lights) {
-        createImage(light->shadow, light->shadow, 0, VK_IMAGE_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shadowMapImages[idx], shadowMapImageMemorys[idx], 1);
+        // together with depth image
+        if (light->type == sconfig::LightType::SPOT) {
+            createImage(light->shadow, light->shadow, 0, VK_IMAGE_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shadowMapImages[idx], shadowMapImageMemorys[idx], 1);
+            createImage(light->shadow, light->shadow, 0, VK_IMAGE_TYPE_2D, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shadowDepthImages[idx], shadowDepthImageMemorys[idx], 1);
+            
+        }
+        else if (light->type == sconfig::LightType::SPHERE) {
+            createImage(light->shadow, light->shadow * 6, 0, VK_IMAGE_TYPE_2D, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shadowMapImages[idx], shadowMapImageMemorys[idx], 1);
+            createImage(light->shadow, light->shadow * 6, 0, VK_IMAGE_TYPE_2D, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shadowDepthImages[idx], shadowDepthImageMemorys[idx], 1);
+            
+        }
+
         shadowMapImageViews[idx] = createImageView2D(shadowMapImages[idx], VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+        shadowDepthImageViews[idx] = createImageView2D(shadowDepthImages[idx], depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+        
         ++idx;
     }
 }
@@ -298,9 +315,14 @@ void SceneViewer::createLightFrameBuffers() {
 
     int idx = 0;
     for (auto& [id, light] : scene_config.id2lights) {
+        uint32_t l_width = static_cast<uint32_t>(light->shadow);
+        uint32_t l_height = l_width;
+        if (light->type == sconfig::LightType::SPHERE) {
+            l_height *= 6;
+        }
         std::array<VkImageView, 2> attachments = {
             shadowMapImageViews[idx],
-            depthImageView
+            shadowDepthImageViews[idx]
         };
 
         // std::cout << idx << std::endl;
@@ -310,8 +332,8 @@ void SceneViewer::createLightFrameBuffers() {
             .renderPass = shadowRenderPass,
             .attachmentCount = static_cast<uint32_t>(attachments.size()),
             .pAttachments = attachments.data(),
-            .width = static_cast<uint32_t>(light->shadow),
-            .height = static_cast<uint32_t>(light->shadow),
+            .width = l_width,
+            .height = l_height,
             .layers = 1,
         };
 

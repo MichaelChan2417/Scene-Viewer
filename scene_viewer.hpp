@@ -307,6 +307,9 @@ public:
     std::vector<void*> shadowUniformBuffersMapped;
     VkDescriptorPool shadowDescriptorPool;
     std::vector<VkDescriptorSet> shadowDescriptorSets;
+    std::vector<VkImage> shadowDepthImages;                 // depth test over image
+    std::vector<VkDeviceMemory> shadowDepthImageMemorys;
+    std::vector<VkImageView> shadowDepthImageViews;
 
     // headless specs
     VkFramebuffer headlessFramebuffer;
