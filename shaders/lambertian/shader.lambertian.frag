@@ -78,15 +78,14 @@ vec3 renderSpot(int lightIdx) {
     float u = (frag_coord[0]/frag_coord[3] + 1.0) / 2.0;
     float v = (frag_coord[1]/frag_coord[3] + 1.0) / 2.0;
 
-    int range = 1;
-    int count = 0;
+    int diff = 1;
+    int tt_num = (2*diff+1)*(2*diff+1);
     float pcfVal = 0.0;
 
-    for (int i=-range; i<=range; i++) {
-        for (int j=-range; j<=range; j++) {
+    for (int i=-diff; i<=diff; i++) {
+        for (int j=-diff; j<=diff; j++) {
             float stored_pre_d = texture(shadowMapSampler[lightIdx], vec2(u+float(i)/2000.0, v+float(j)/2000.0)).r;
             float storedDepth = stored_pre_d * lubo.metadata1[lightIdx][2];
-            count++;
 
             if (curDistance < storedDepth) {
                 pcfVal += 1.0;
@@ -95,7 +94,7 @@ vec3 renderSpot(int lightIdx) {
             }
         }
     }
-    pcfVal /= float(count);
+    pcfVal /= float(tt_num);
 
     // this value should be mult with NdotV
     float NdotV = dot(fragNormal, normalize(-ptr));
