@@ -27,10 +27,15 @@ void renderSphere(int lightIdx) {
     vec3 dir = normalize(worldPos - curLightPos);
     float limit = lubo.metadata1[lightIdx][1];
 
-    float fx = abs(dir.x), fy = abs(dir.y), fz = abs(dir.z);
+    vec3 absDir = abs(dir);
+    float fx = absDir.x;
+    float fy = absDir.y;
+    float fz = absDir.z;
+
+    float maxf = max(max(fx, fy), fz);
 
     float u, v;
-    if (fx >= fy && fx >= fz) {
+    if (maxf == fx) {
         u = dir.y / fx;
         v = dir.z / fx / 6.0;
         if (dir.x < 0) {
@@ -39,10 +44,10 @@ void renderSphere(int lightIdx) {
             v -= 0.5;
         }
     }
-    else if (fy >= fx && fy >= fz) {
+    else if (maxf == fy) {
         u = dir.x / fy;
         v = dir.z / fy / 6.0;
-        if (dir.y < 0) {
+        if (dir.y > 0) {
             v -= 1.0/6.0;
         } else {
             v += 1.0/6.0;
@@ -75,6 +80,10 @@ void renderSphere(int lightIdx) {
     float dis_dec_factor = pow(1 - (curDistance / limit), 4);
     vec4 fct = vec4(dis_dec_factor, dis_dec_factor, dis_dec_factor, 1.0);
     outColor *= fct;
+
+    // outColor = vec4(stored_pre_d, stored_pre_d, stored_pre_d, 1.0);
+
+    // outColor = vec4(abs(u), abs(v), 0.0, 1.0);
 }
 
 
@@ -83,7 +92,7 @@ void main() {
     float bias = 0.0;
 
     // TODO: we need a number of real light count, otherwise => multiple add
-    for (int lightIdx = 0; lightIdx < 1; lightIdx++;) {
+    for (int lightIdx = 0; lightIdx < 1; lightIdx++) {
         int lightType = int(lubo.lightPos[lightIdx].w);
 
         // for sphere light
@@ -113,24 +122,21 @@ void main() {
         float u = (frag_coord[0]/frag_coord[3] + 1.0) / 2.0;
         float v = (frag_coord[1]/frag_coord[3] + 1.0) / 2.0;
 
-        int x = int(u * 500);
-        int y = int(v * 500);
-
         int range = 1;
         int count = 0;
         float rage = 0.0;
 
-        for (int i = -range; i <= range; i++) {
-            for (int j = -range; j <= range; j++) {
+        for (int i=-range; i <= range; i++) {
+            for (int j=-range; j<=range; j++) {
                 // float stored_pre_d = texture(shadowMapSampler[lightIdx], vec2((x + i + 0.5f) / 500.0, (y + j + 0.5f) / 500.0)).r;
-                float stored_pre_d = texture(shadowMapSampler[lightIdx], vec2(u+float(i)/500.0, v+float(j)/500.0)).r;
+                float stored_pre_d = texture(shadowMapSampler[lightIdx], vec2(u+float(i)/2000.0, v+float(j)/2000.0)).r;
                 float storedDepth = stored_pre_d * lubo.metadata1[lightIdx][2];
                 count++;
 
                 if (curDistance + bias < storedDepth) {
                     rage += 1.0;
                 } else {
-                    rage += 0.05;
+                    rage += 0.00;
                 }
             }
         }
@@ -145,13 +151,14 @@ void main() {
             float px = viewAngle - edge;
             float py = halfFov - viewAngle;
             float portion = py / (px + py);
-            vec4 eft = vec4(portion,portion,portion, 10);
+            vec4 eft = vec4(portion,portion,portion, 1.0);
             outColor *= eft;
         }
 
         float dis_dec_factor = pow(1 - (curDistance / lubo.metadata1[lightIdx][2]), 4);
         vec4 fct = vec4(dis_dec_factor, dis_dec_factor, dis_dec_factor, 1.0);
-        outColor *= fct;
+        vec4 colorFct = vec4(lubo.lightColor[lightIdx].xyz, 1.0);
+        outColor *= fct * colorFct;
     }
 
 }

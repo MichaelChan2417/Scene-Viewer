@@ -583,8 +583,8 @@ namespace sconfig {
             return nullptr;
         }
         light->position = cglm::Vec3f{ 0.0f, 0.0f, 0.0f };
-        light->direction = cglm::Vec3f{ -1.0f, 0.0f, 0.0f };
-        light->up = cglm::Vec3f{ 0.0f, 0.0f, 1.0f };
+        light->direction = cglm::Vec3f{ 0.0f, 0.0f, -1.0f };
+        light->up = cglm::Vec3f{ 0.0f, 1.0f, 0.0f };
 
         // cases for types
         if (obj->contents.find("sun") != obj->contents.end()) {

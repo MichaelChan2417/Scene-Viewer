@@ -29,14 +29,15 @@ layout(location = 2) in vec3 inColor;
 
 layout(location = 0) out vec3 fragColor;
 
-void setUpSpotLight(int lightIdx, vec4 tr_pos) {
+void setUpSpotLight(int lightIdx, vec4 tr_pos, vec3 rNormal) {
     vec3 curLightPos = lubo.lightPos[lightIdx].xyz;
     mat4 curViewMat = lubo.lightViewMatrix[lightIdx];
     mat4 curProjMat = lubo.lightProjMatrix[lightIdx];
 
-    gl_Position = curProjMat * curViewMat * tr_pos;  // old version
+    vec3 r_pos = tr_pos.xyz - rNormal * 0.1;
+    gl_Position = curProjMat * curViewMat * vec4(r_pos, 1.0);  // old version
 
-    float depth = length(curLightPos - tr_pos.xyz);
+    float depth = length(curLightPos - r_pos);
     
     // limit is at index-2
     float d_val = depth / lubo.metadata1[lightIdx][2];
@@ -44,18 +45,23 @@ void setUpSpotLight(int lightIdx, vec4 tr_pos) {
     fragColor = vec3(d_val, d_val, d_val);
 }
 
-void setUpSphereLight(int lightIdx, vec4 tr_pos) {
-    vec3 vertex_pos = tr_pos.xyz;
+void setUpSphereLight(int lightIdx, vec4 tr_pos, vec3 rNormal) {
+    vec3 r_pos = tr_pos.xyz - rNormal * 0.01;
     vec3 light_pos = lubo.lightPos[lightIdx].xyz;
-    vec3 dir = normalize(vertex_pos - light_pos);
+    vec3 dir = normalize(r_pos - light_pos);
 
     float limit = lubo.metadata1[lightIdx][1];
-    float distance = length(vertex_pos - light_pos);
+    float distance = length(r_pos - light_pos);
     float d_val = distance / limit;
 
-    float fx = abs(dir.x), fy = abs(dir.y), fz = abs(dir.z);
+    vec3 absDir = abs(dir);
+    float fx = absDir.x;
+    float fy = absDir.y;
+    float fz = absDir.z;
 
-    if (fx >= fy && fx >= fz) {
+    float maxf = max(fx, max(fy, fz));
+
+    if (maxf == fx) {
         float u = dir.y / fx;
         float v = dir.z / fx / 6.0;
         if (dir.x < 0) {
@@ -63,7 +69,7 @@ void setUpSphereLight(int lightIdx, vec4 tr_pos) {
         } else {
             gl_Position = vec4(u, v-0.5, d_val, 1.0);
         }
-    } else if (fy >= fx && fy >= fz) {
+    } else if (maxf == fy) {
         float u = dir.x / fy;
         float v = dir.z / fy / 6.0;
         if (dir.y < 0) {
@@ -95,11 +101,11 @@ void main() {
 
     if (lightType == 0) {
         // spot light
-        setUpSpotLight(lightIdx, tr_pos);
+        setUpSpotLight(lightIdx, tr_pos, rNormal);
     }
     else if (lightType == 1) {
         // sphere light
-        setUpSphereLight(lightIdx, tr_pos);
+        setUpSphereLight(lightIdx, tr_pos, rNormal);
     }
 
 }
