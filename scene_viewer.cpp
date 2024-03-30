@@ -63,9 +63,20 @@ void SceneViewer::initVulkan() {
 void SceneViewer::cleanup() {
 
     cleanupSwapChain();
-    
+
+    // clear shadow depth resources
+    for (size_t i = 0; i < scene_config.id2lights.size(); i++) {
+        vkDestroyImageView(device, shadowDepthImageViews[i], nullptr);
+        vkDestroyImage(device, shadowDepthImages[i], nullptr);
+        vkFreeMemory(device, shadowDepthImageMemorys[i], nullptr);
+    }
+    for (auto shadowFrameBuffer : shadowMapFramebuffers) {
+        vkDestroyFramebuffer(device, shadowFrameBuffer, nullptr);
+    }
+
     vkDestroySampler(device, textureSampler2D, nullptr);
     vkDestroySampler(device, textureSamplerCube, nullptr);
+    vkDestroySampler(device, shadowMapSampler, nullptr);
 
     for (auto& imageView : texture2DImageViews) {
         vkDestroyImageView(device, imageView, nullptr);
@@ -87,6 +98,16 @@ void SceneViewer::cleanup() {
         vkFreeMemory(device, memory, nullptr);
     }
 
+    for (auto& imageView : shadowMapImageViews) {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
+    for (auto& image : shadowMapImages) {
+        vkDestroyImage(device, image, nullptr);
+    }
+    for (auto& memory : shadowMapImageMemorys) {
+        vkFreeMemory(device, memory, nullptr);
+    }
+
     // vkDestroyPipeline(device, graphicsPipeline, nullptr);
     for (auto& [materialType, pipeline] : material2Pipelines) {
         vkDestroyPipeline(device, pipeline, nullptr);
@@ -97,14 +118,25 @@ void SceneViewer::cleanup() {
     }
     vkDestroyRenderPass(device, renderPass, nullptr);
 
+    // destroy shadow pipeline
+    vkDestroyPipeline(device, shadowGraphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(device, shadowPipelineLayout, nullptr);
+    vkDestroyRenderPass(device, shadowRenderPass, nullptr);
+
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroyBuffer(device, uniformBuffers[i], nullptr);
         vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+        vkDestroyBuffer(device, shadowUniformBuffers[i], nullptr);
+        vkFreeMemory(device, shadowUniformBuffersMemory[i], nullptr);
     }
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+
+    vkDestroyDescriptorPool(device, shadowDescriptorPool, nullptr);
+    vkDestroyDescriptorSetLayout(device, shadowDescriptorSetLayout, nullptr);
     
+
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);
 
