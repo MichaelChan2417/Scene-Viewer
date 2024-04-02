@@ -130,15 +130,28 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     clearValues[1].depthStencil = {1.0f, 0};
 
     // TODO: instead, I begin a render pass for shadow map
-    int lidx = 0;
+    LightUniformBufferObject lubo{};
+    updateWholeLightUniformBuffer(currentFrame, lubo);
+
+    int spot_idx = 0, sphere_idx = 0;
     for (auto& [id, light] : scene_config.id2lights) {
-        updateLightUniformBuffer(currentFrame, lidx, id);
-
-        singleShadowRenderPass(commandBuffer, lidx, id);
-        ++lidx;
+        // updateCurLightUBOIndex(currentFrame, spot_idx + sphere_idx, lubo);
+        if (light->type == sconfig::LightType::SPOT) {
+            singleShadowRenderPass(commandBuffer, spot_idx, sphere_idx, id);
+            ++spot_idx;
+        } else if (light->type == sconfig::LightType::SPHERE) {
+            singleCubeShadowRenderPass(commandBuffer, spot_idx, sphere_idx, id);
+            ++sphere_idx;
+        }
     }
+    
     // std::cout << lidx << std::endl;
-
+    /*
+        Learning from vulkan example: this is important!
+        Note: Explicit synchronization is not required between the render pass,
+        as this is done implicit via sub pass dependencies
+    */
+    
     // content drawing
     // updateUniformBuffer(currentFrame);
     VkRenderPassBeginInfo renderPassInfo{

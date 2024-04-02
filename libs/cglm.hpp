@@ -495,6 +495,18 @@ namespace cglm {
             {-dot(s, eye), -dot(u, eye), dot(f, eye), 1}
         );
     }
+    template <typename T> Mat44<T> lookAtLeft(const Vec<3, T>& eye, const Vec<3, T>& center, const Vec<3, T>& up) {
+        Vec<3, T> f = normalize(center - eye);
+        Vec<3, T> u = normalize(up);
+        Vec<3, T> s = -normalize(cross(f, u));
+
+        return Mat44<T>(
+            {s.x, u.x, -f.x, 0},
+            {s.y, u.y, -f.y, 0},
+            {s.z, u.z, -f.z, 0},
+            {-dot(s, eye), -dot(u, eye), dot(f, eye), 1}
+        );
+    }
 
     template <typename T> Mat44<T> perspective(T fovy, T aspect, T zNear, T zFar) {
         T f = T(1) / std::tan(fovy / T(2));
@@ -558,6 +570,10 @@ namespace cglm {
 
     template <typename T> Vec3<T> mix(const Vec3<T>& a, const Vec3<T>& b, T t) {
         return a * (1 - t) + b * t;
+    }
+
+    template <typename T> Mat44<T> rotate(Mat44<T> m, T angle, Vec3<T> axis) {
+        return m * rotate(axis, angle);
     }
 
 

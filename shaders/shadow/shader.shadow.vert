@@ -23,6 +23,13 @@ layout(binding = 1) uniform UniformBufferObject {
     mat4 instanceModels[MAX_INSTANCE];
 } ubo;
 
+layout(push_constant) uniform PushConsts 
+{
+    int lightIdx;
+	mat4 view;
+    mat4 proj;
+} pushConsts;
+
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec3 inColor;
@@ -34,7 +41,7 @@ void setUpSpotLight(int lightIdx, vec4 tr_pos, vec3 rNormal) {
     mat4 curViewMat = lubo.lightViewMatrix[lightIdx];
     mat4 curProjMat = lubo.lightProjMatrix[lightIdx];
 
-    vec3 r_pos = tr_pos.xyz - rNormal * 0.1;
+    vec3 r_pos = tr_pos.xyz - rNormal * 0.05;
     gl_Position = curProjMat * curViewMat * vec4(r_pos, 1.0);  // old version
 
     float depth = length(curLightPos - r_pos);
@@ -46,47 +53,14 @@ void setUpSpotLight(int lightIdx, vec4 tr_pos, vec3 rNormal) {
 }
 
 void setUpSphereLight(int lightIdx, vec4 tr_pos, vec3 rNormal) {
-    vec3 r_pos = tr_pos.xyz - rNormal * 0.01;
-    vec3 light_pos = lubo.lightPos[lightIdx].xyz;
-    vec3 dir = normalize(r_pos - light_pos);
-
+    vec3 curLightPos = lubo.lightPos[lightIdx].xyz;
     float limit = lubo.metadata1[lightIdx][1];
-    float distance = length(r_pos - light_pos);
-    float d_val = distance / limit;
 
-    vec3 absDir = abs(dir);
-    float fx = absDir.x;
-    float fy = absDir.y;
-    float fz = absDir.z;
+    vec3 r_pos = tr_pos.xyz - rNormal * 0.02;
+    gl_Position = pushConsts.proj * pushConsts.view * vec4(r_pos, 1.0); 
 
-    float maxf = max(fx, max(fy, fz));
-
-    if (maxf == fx) {
-        float u = dir.y / fx;
-        float v = dir.z / fx / 6.0;
-        if (dir.x < 0) {
-            gl_Position = vec4(u, v-5.0/6.0, d_val, 1.0);
-        } else {
-            gl_Position = vec4(u, v-0.5, d_val, 1.0);
-        }
-    } else if (maxf == fy) {
-        float u = dir.x / fy;
-        float v = dir.z / fy / 6.0;
-        if (dir.y < 0) {
-            gl_Position = vec4(u, v-1.0/6.0, d_val, 1.0);
-        } else {
-            gl_Position = vec4(u, v+1.0/6.0, d_val, 1.0);
-        }
-    } else {
-        float u = dir.x / fz;
-        float v = dir.y / fz / 6.0;
-        if (dir.z < 0) {
-            gl_Position = vec4(u, v+0.5, d_val, 1.0);
-        } else {
-            gl_Position = vec4(u, v+5.0/6.0, d_val, 1.0);
-        }
-    }
-
+    float dist = length(curLightPos - r_pos);
+    float d_val = dist / limit;
     fragColor = vec3(d_val, d_val, d_val);
 }
 
@@ -95,7 +69,8 @@ void main() {
     vec4 tr_pos = ubo.instanceModels[gl_InstanceIndex] * vec4(inPosition, 1.0);
     vec3 rNormal = mat3(normalMatrix) * inNormal;
 
-    int lightIdx = int(lubo.metadata2[0][0]);
+    // int lightIdx = int(lubo.metadata2[0][0]);
+    int lightIdx = pushConsts.lightIdx;
 
     int lightType = int(lubo.lightPos[lightIdx][3]);
 

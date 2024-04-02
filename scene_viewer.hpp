@@ -297,9 +297,17 @@ public:
     std::vector<VkDeviceMemory> shadowMapImageMemorys;
     std::vector<VkImageView> shadowMapImageViews;
     VkSampler shadowMapSampler;
+    std::vector<VkImage> shadowMapCubeImages;
+    std::vector<VkDeviceMemory> shadowMapCubeImageMemorys;
+    std::vector<VkImageView> shadowMapCubeImageViews;
+    std::vector<std::vector<VkImageView>> shadowMapCubeFacesImageViews;
+    VkSampler shadowMapCubeSampler;
+
     VkRenderPass shadowRenderPass;
     std::vector<VkFramebuffer> shadowMapFramebuffers;
-    VkPipelineLayout shadowPipelineLayout;        
+    std::vector<std::vector<VkFramebuffer>> shadowMapCubeFramebuffers;
+    
+    VkPipelineLayout shadowPipelineLayout;
     VkPipeline shadowGraphicsPipeline;
     VkDescriptorSetLayout shadowDescriptorSetLayout;
     std::vector<VkBuffer> shadowUniformBuffers;
@@ -307,9 +315,13 @@ public:
     std::vector<void*> shadowUniformBuffersMapped;
     VkDescriptorPool shadowDescriptorPool;
     std::vector<VkDescriptorSet> shadowDescriptorSets;
+
     std::vector<VkImage> shadowDepthImages;                 // depth test over image
     std::vector<VkDeviceMemory> shadowDepthImageMemorys;
     std::vector<VkImageView> shadowDepthImageViews;
+    std::vector<VkImage> shadowCubeDepthImages;                 // depth test over image
+    std::vector<VkDeviceMemory> shadowCubeDepthImageMemorys;
+    std::vector<VkImageView> shadowCubeDepthImageViews;
 
     // headless specs
     VkFramebuffer headlessFramebuffer;
@@ -373,7 +385,10 @@ public:
     void createLightDescriptorPool();
     void createLightDescriptorSets();
     void updateLightUniformBuffer(uint32_t currentImage, int idx, int light_id);
-    void singleShadowRenderPass(VkCommandBuffer commandBuffer, int idx, int light_id);
+    void updateWholeLightUniformBuffer(uint32_t currentImage, LightUniformBufferObject& lubo);
+    void updateCurLightUBOIndex(uint32_t currentFrame, int idx, LightUniformBufferObject& lubo);
+    void singleShadowRenderPass(VkCommandBuffer commandBuffer, int spot_idx, int sphere_idx, int light_id);
+    void singleCubeShadowRenderPass(VkCommandBuffer commandBuffer, int spot_idx, int sphere_idx, int light_id);
 
     // texture
     void createTextureImage();
