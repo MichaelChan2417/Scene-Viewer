@@ -122,18 +122,12 @@ vec3 renderSpot(int lightIdx, int spot_idx) {
             float stored_pre_d = texture(shadowMapSampler[spot_idx], vec2(u+float(i)/shadowMapSize, v+float(j)/shadowMapSize)).r;
             float storedDepth = stored_pre_d * lubo.metadata1[lightIdx][2];
 
-            // if (curDistance <= storedDepth) {
-            //     pcfVal += 1.0;
-            // }
-            // tt_num++;
             if (storedDepth < curDistance) {
                 avgDepth += storedDepth;
                 ++tt_num;
             }
         }
     }
-
-    // pcfVal /= float(tt_num);
 
     avgDepth /= float(tt_num);
 
@@ -163,9 +157,9 @@ vec3 renderSpot(int lightIdx, int spot_idx) {
         pcfVal /= float(tt_num);
     }
 
-    // this value should be mult with NdotV
-    float NdotV = dot(fragNormal, normalize(-ptr));
-    pcfVal *= NdotV;
+    // this value should be mult with NdotL
+    float NdotL = dot(fragNormal, normalize(-ptr));
+    pcfVal *= NdotL;
 
     vec3 res = vec3(pcfVal, pcfVal, pcfVal);
 
@@ -232,14 +226,14 @@ void main() {
         // Spot Light
         if (lightType == 0) {
             vec3 pLight = renderSpot(lightIdx, spot_idx);
-            outColor += vec4(baseColor * pLight, 1.0);
+            outColor += vec4(baseColor * pLight, 0.0);
             spot_idx++;
             // outColor = vec4(pLight, 1.0);
             continue;
 
         } else if (lightType == 1) {
             vec3 pLight = renderSphere(lightIdx, sphere_idx);
-            outColor += vec4(baseColor * pLight, 1.0);
+            outColor += vec4(baseColor * pLight, 0.0);
             sphere_idx++;
             continue;
         }

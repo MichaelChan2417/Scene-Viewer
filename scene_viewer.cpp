@@ -10,6 +10,7 @@ double SceneViewer::lastXPos;
 double SceneViewer::lastYPos;
 
 void SceneViewer::initVulkan() {
+    std::cout << "Init Vulkan..." << std::endl;
     createInstance();
     setupDebugMessenger();
     createSurface();

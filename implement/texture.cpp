@@ -136,6 +136,7 @@ void SceneViewer::createTextureSampler() {
 
 
 void SceneViewer::texturePrepare() {
+    std::cout << "Preparing textures..." << std::endl;
     // first is environment
     std::shared_ptr<sconfig::Environment> env = scene_config.environment;
     // env could be nullptr
