@@ -3,6 +3,8 @@
 const int MAX_INSTANCE = 128;
 const int MAX_LIGHT = 8;
 
+// referrencing from https://learnopengl.com/PBR/Lighting
+
 layout(binding = 1) uniform sampler2D tex2DSampler[MAX_INSTANCE];
 layout(binding = 2) uniform samplerCube texCubeSampler[MAX_INSTANCE];
 
@@ -92,18 +94,30 @@ float ggxNormalDistribution(float NdotH, float roughness) {
         roughness = 0.001;
     }
 
-    float a2 = roughness * roughness;
-    float NdotH2 = NdotH * NdotH;
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float nh = max(NdotH, 0.0);
+    float NdotH2 = nh * nh;
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
     denom = 3.1415926 * denom * denom;
     return a2 / denom;
 }
 
+float GeometrySchlickGGX(float NdotV, float roughness) {
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+    float nom = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+
+    return nom / denom;
+}
+
 float ggxSchlickGTerm(float NdotL, float NdotV, float roughness) {
-    float k = roughness * roughness / 2.0;
-    float gl = NdotL * (NdotV * (1.0 - k) + k);
-    float gv = NdotV * (NdotL * (1.0 - k) + k);
-    return gv * gl;
+    float nl = max(NdotL, 0.0);
+    float nv = max(NdotV, 0.0);
+    float ggx1 = GeometrySchlickGGX(nl, roughness);
+    float ggx2 = GeometrySchlickGGX(nv, roughness);
+    return ggx1 * ggx2;
 }
 
 void main() {
@@ -138,21 +152,25 @@ void main() {
     vec3 F0 = vec3(0.04); 
     F0 = mix(F0, albedo, metalness);
 
-    vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
-    vec3 kS = F;
-    vec3 kD = 1.0 - kS;
-    kD *= 1.0 - metalness;
+    // vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+    // vec3 kS = F;
+    // vec3 kD = 1.0 - kS;
+    // kD *= 1.0 - metalness;
 
     // getting light infos
-    outColor = vec4(0.0, 0.0, 0.0, 1.0);
+    // outColor = vec4(0.0, 0.0, 0.0, 1.0);
     int totalLightCount = int(lubo.metadata2[0][2]);
     int sphere_idx = 0;
     int spot_idx = 0;
+
+    vec3 color = vec3(0.0);
 
     for (int lightIdx=0; lightIdx<totalLightCount; lightIdx++) {
         int lightType = int(lubo.lightPos[lightIdx].w);
         vec3 curLightPos = lubo.lightPos[lightIdx].xyz;
         float lightRadius = lubo.metadata1[lightIdx].x;
+        vec3 ptr = fragWorldPos - curLightPos;
+        float curDistance = length(ptr);
 
         vec3 R = getSphereClosestDir(curLightPos, lightRadius, fragWorldPos, normalize(oldR));
 
@@ -162,8 +180,6 @@ void main() {
             mat4 curViewMat = lubo.lightViewMatrix[lightIdx];   
             mat4 curProjMat = lubo.lightProjMatrix[lightIdx];
             float halfFov = lubo.metadata1[lightIdx][1];
-            vec3 ptr = fragWorldPos - curLightPos;
-            float curDistance = length(ptr);
             float limit = lubo.metadata1[lightIdx][2];
             float power = lubo.lightDir[lightIdx][3];
             float shadowMapSize = lubo.metadata2[lightIdx].w;
@@ -204,14 +220,16 @@ void main() {
                 frac *= portion;
             }
             float dis_dec_factor = max(0, pow(1 - (curDistance / limit), 4));
-            float normal_dec_factor = power / (4 * 3.1415926 * pow(curDistance, 2));
+            float normal_dec_factor = power / (/*4 * 3.1415926 **/ pow(curDistance, 2));
             float frac2 = dis_dec_factor * normal_dec_factor;
             frac *= frac2;
 
             float lightPart = pcfVal * frac;
-            // getting the diffuse part
-            vec3 diffuse = vec3(lightPart, lightPart, lightPart) * albedo * lubo.lightColor[lightIdx].rgb;
-            // then is GGX
+            vec3 radiance = lubo.lightColor[lightIdx].rgb * vec3(lightPart, lightPart, lightPart);
+
+            // // getting the diffuse part
+            // vec3 diffuse = vec3(lightPart, lightPart, lightPart) * albedo * lubo.lightColor[lightIdx].rgb;
+            // // then is GGX
             vec3 H = normalize(V + R);
             float NdotH = max(dot(N, H), 0.0);
             float NdotL = max(dot(N, R), 0.0);
@@ -220,19 +238,71 @@ void main() {
             float D = ggxNormalDistribution(NdotH, roughness);
             float G = ggxSchlickGTerm(NdotL, NdotV, roughness);
 
-            vec3 ggxTerm = D * G * F * frac2 / (4.0 * NdotV * NdotL + 0.001);
-            ggxTerm *= lubo.lightColor[lightIdx].rgb;
+            vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+            vec3 kS = F;
+            vec3 kD = 1.0 - kS;
+            kD *= 1.0 - metalness;
 
-            vec3 fnColor = diffuse + ggxTerm;
+            vec3 num = D * G * F;
+            float denom = 4.0 * max(dot(N, V), 0.0) * max(dot(N, R), 0.0) + 0.001;
+            vec3 specular = num / denom;
 
+            vec3 fnColor = (kD * albedo / 3.1415926 + specular) * radiance * NdotL;
+
+            // vec3 ggxTerm = D * G * F * frac2 / (4.0 * NdotV + 0.001);
+            // ggxTerm *= lubo.lightColor[lightIdx].rgb;
+
+            // vec3 fnColor = diffuse + ggxTerm;
+
+            color += fnColor;
+
+            // // outColor += vec4(fnColor, 0.0);
             // outColor += vec4(fnColor, 0.0);
-            outColor += vec4(ggxTerm, 0.0);
 
             spot_idx++;
             continue;
         }
         else {
             // doing sphere render
+            float limit = lubo.metadata1[lightIdx][1];
+            float power = lubo.lightDir[lightIdx].w;
+
+            float storedDepth = texture(shadowCubeMapSampler[sphere_idx], normalize(ptr)).r * limit;
+            if (curDistance > storedDepth) {
+                continue;
+            }
+            float dis_dec_factor = max(0, pow(1 - (curDistance / limit), 4));
+            float normal_dec_factor = power / (/*4 * 3.1415926 **/ pow(curDistance, 2));
+            float frac = dis_dec_factor * normal_dec_factor;
+
+            vec3 radiance = lubo.lightColor[lightIdx].rgb * vec3(frac, frac, frac);
+            
+            vec3 H = normalize(V + R);
+            float NdotH = max(dot(N, H), 0.0);
+            float NdotL = max(dot(N, R), 0.0);
+            float NdotV = max(dot(N, V), 0.0);
+
+            float D = ggxNormalDistribution(NdotH, roughness);
+            float G = ggxSchlickGTerm(NdotL, NdotV, roughness);
+
+            vec3 F = fresnelSchlickRoughness(max(dot(N, V), 0.0), F0, roughness);
+            vec3 kS = F;
+            vec3 kD = 1.0 - kS;
+            kD *= 1.0 - metalness;
+
+            vec3 num = D * G * F;
+            float denom = 4.0 * max(dot(N, V), 0.0) * max(dot(N, R), 0.0) + 0.001;
+            vec3 specular = num / denom;
+
+            vec3 fnColor = (kD * albedo / 3.1415926 + specular) * radiance * NdotL;
+
+            // vec3 ggxTerm = D * G * F * frac2 / (4.0 * NdotV + 0.001);
+            // ggxTerm *= lubo.lightColor[lightIdx].rgb;
+
+            // vec3 fnColor = diffuse + ggxTerm;
+
+            color += fnColor;
+
             sphere_idx++;
             continue;
         }
@@ -248,11 +318,16 @@ void main() {
     // vec3 specular = preFilteredColor * (F * brdf.x + brdf.y);
     
     // vec3 ambient = (kD * diffuse + specular);
-
     // vec3 midColor = ambient;
     
     // outColor = vec4(midColor, 1.0);
     // outColor = vec4(baseColor * light_decode, 1.0);
 
     // outColor = vec4(roughness, metalness, 0.0, 1.0);
+
+    // This is realllllllllly helpful for the final result
+    color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0/2.2));
+
+    outColor = vec4(color, 1.0);
 }

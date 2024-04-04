@@ -56,7 +56,7 @@ void setUpSphereLight(int lightIdx, vec4 tr_pos, vec3 rNormal) {
     vec3 curLightPos = lubo.lightPos[lightIdx].xyz;
     float limit = lubo.metadata1[lightIdx][1];
 
-    vec3 r_pos = tr_pos.xyz - rNormal * 0.02;
+    vec3 r_pos = tr_pos.xyz - rNormal * 0.08;
     gl_Position = pushConsts.proj * pushConsts.view * vec4(r_pos, 1.0); 
 
     float dist = length(curLightPos - r_pos);
