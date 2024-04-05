@@ -3,7 +3,7 @@
 const int MAX_INSTANCE = 128;
 const int MAX_LIGHT = 8;
 
-const float BIAS = 0.05;
+const float BIAS = 0;
 
 // referencing https://www.bilibili.com/video/BV1YK4y1T7yY?p=3&vd_source=f9eb1fe5893f11828341e009f807a94d for 
 // pcss shadow mapping and also NVIDIA https://developer.download.nvidia.com/whitepapers/2008/PCSS_Integration.pdf
@@ -70,6 +70,10 @@ vec3 renderSphere(int lightIdx, int sphere_idx) {
     float limit = lubo.metadata1[lightIdx][1];
     float power = lubo.lightDir[lightIdx].w;
 
+    if (limit < 5.0) {
+        return vec3(0.0, 0.0, 0.0);
+    }
+
     vec3 ptr = fragWorldPos - curLightPos;
 
     float curDistance = length(ptr);
@@ -103,6 +107,10 @@ vec3 renderSpot(int lightIdx, int spot_idx) {
     float lightRadius = lubo.metadata1[lightIdx][0];
     float limit = lubo.metadata1[lightIdx][2];
 
+    if (limit < 5.0) {
+        return vec3(0.0, 0.0, 0.0);
+    }
+
     vec3 ptr = fragWorldPos - curLightPos;
     float viewAngle = acos(dot(normalize(ptr), curLightDir));
     if (viewAngle > halfFov) {
@@ -125,7 +133,8 @@ vec3 renderSpot(int lightIdx, int spot_idx) {
     float frac1 = (curDistance - centerDepth) / centerDepth;
     float w = shadowMapSize * lightRadius * frac1 / (curDistance * tan(halfFov));
     int rw = int(w) / 2;
-    rw = min(0, rw);
+    // rw = min(8, rw);
+    rw = 3;
     // if (rw > 10) {
     //     return vec3(1.0, 0.0, 0.0);
     // }
@@ -152,11 +161,8 @@ vec3 renderSpot(int lightIdx, int spot_idx) {
         float w = shadowMapSize * lightRadius * frac1 / (curDistance * tan(halfFov));
         int rw = int(w) / 2;
 
-        rw = min(10, rw);
-        rw = 3;
-        // if (rw > 10) {
-        //     return vec3(1.0, 0.0, 0.0);
-        // }
+        // LIMIT this value if too slow for larger values
+        rw = min(30, rw);
 
         tt_num = 0;
         for (int i=-rw; i<=rw; i++) {
@@ -164,14 +170,23 @@ vec3 renderSpot(int lightIdx, int spot_idx) {
                 float stored_pre_d = texture(shadowMapSampler[spot_idx], vec2(u+float(i)/shadowMapSize, v+float(j)/shadowMapSize)).r;
                 float storedDepth = stored_pre_d * limit;
 
-                if (curDistance <= storedDepth) {
+                if (curDistance - 0.1 <= storedDepth) {
                     pcfVal += 1.0;
                 }
                 tt_num++;
             }
         }
         pcfVal /= float(tt_num);
+
+        /* !!!!!!!!!!!!!!!!!!!!!! TRICKY !!!!!!!!!!!!!!!!!!!!!! */
+        pcfVal /= 0.4;
+        pcfVal = min(1.0, pcfVal);
+        ////////////////////////////////////// comment these two for normal results
     }
+
+    // if (pcfVal > 0.4) {
+    //     pcfVal = 1.0;
+    // }
 
     // this value should be mult with NdotL
     float NdotL = dot(fragNormal, normalize(-ptr));

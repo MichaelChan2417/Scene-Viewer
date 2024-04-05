@@ -389,6 +389,7 @@ public:
     void updateCurLightUBOIndex(uint32_t currentFrame, int idx, LightUniformBufferObject& lubo);
     void singleShadowRenderPass(VkCommandBuffer commandBuffer, int spot_idx, int sphere_idx, int light_id);
     void singleCubeShadowRenderPass(VkCommandBuffer commandBuffer, int spot_idx, int sphere_idx, int light_id);
+    void cleanShadowResources();
 
     // texture
     void createTextureImage();

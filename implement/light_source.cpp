@@ -806,3 +806,70 @@ void SceneViewer::createShadowDescriptorSetLayout() {
         throw std::runtime_error("Failed to create descriptor set layout!");
     }
 }
+
+void SceneViewer::cleanShadowResources() {
+    
+    int spot_cnt = 0;
+    int sphere_cnt = 0;
+
+    for (auto& [id, light] : scene_config.id2lights) {
+        if (light->type == sconfig::LightType::SPOT) {
+            ++spot_cnt;
+        }
+        else if (light->type == sconfig::LightType::SPHERE) {
+            ++sphere_cnt;
+        }
+    }
+
+    for (size_t i = 0; i < spot_cnt; i++) {
+        vkDestroyImageView(device, shadowDepthImageViews[i], nullptr);
+        vkDestroyImage(device, shadowDepthImages[i], nullptr);
+        vkFreeMemory(device, shadowDepthImageMemorys[i], nullptr);
+    }
+    for (auto shadowFrameBuffer : shadowMapFramebuffers) {
+        vkDestroyFramebuffer(device, shadowFrameBuffer, nullptr);
+    }
+
+    for (size_t i = 0; i < sphere_cnt; i++) {
+        for (int j = 0; j < 6; j++) {
+            vkDestroyImageView(device, shadowMapCubeFacesImageViews[i][j], nullptr);
+        }
+        vkDestroyImageView(device, shadowCubeDepthImageViews[i], nullptr);
+        vkDestroyImage(device, shadowCubeDepthImages[i], nullptr);
+        vkFreeMemory(device, shadowCubeDepthImageMemorys[i], nullptr);
+        vkDestroyImageView(device, shadowMapCubeImageViews[i], nullptr);
+        vkDestroyImage(device, shadowMapCubeImages[i], nullptr);
+        vkFreeMemory(device, shadowMapCubeImageMemorys[i], nullptr);
+        for (int j = 0; j < 6; j++) {
+            vkDestroyFramebuffer(device, shadowMapCubeFramebuffers[i][j], nullptr);
+        }
+    }
+    
+    vkDestroySampler(device, shadowMapSampler, nullptr);
+    vkDestroySampler(device, shadowMapCubeSampler, nullptr);
+
+    for (auto& imageView : shadowMapImageViews) {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
+    for (auto& image : shadowMapImages) {
+        vkDestroyImage(device, image, nullptr);
+    }
+    for (auto& memory : shadowMapImageMemorys) {
+        vkFreeMemory(device, memory, nullptr);
+    }
+
+    // destroy shadow pipeline
+    vkDestroyPipeline(device, shadowGraphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(device, shadowPipelineLayout, nullptr);
+    vkDestroyRenderPass(device, shadowRenderPass, nullptr);
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroyBuffer(device, uniformBuffers[i], nullptr);
+        vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
+        vkDestroyBuffer(device, shadowUniformBuffers[i], nullptr);
+        vkFreeMemory(device, shadowUniformBuffersMemory[i], nullptr);
+    }
+
+    vkDestroyDescriptorPool(device, shadowDescriptorPool, nullptr);
+    vkDestroyDescriptorSetLayout(device, shadowDescriptorSetLayout, nullptr);
+}
