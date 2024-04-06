@@ -126,7 +126,7 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
 
     // begin drawing, (render pass)
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{0.0f, 0.0f, 1.0f, 1.0f}};
+    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
     // TODO: instead, I begin a render pass for shadow map
@@ -167,19 +167,44 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     };
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+    
+    double windowAspect = static_cast<double>(window_width) / static_cast<double>(window_height);
+    std::string cur_camera = scene_config.cur_camera;
+    double cameraAspect = scene_config.cameras[cur_camera]->aspect;
+
     // some pre-sets
+    float blackBarWidth = 0.0f;
+    float blackBarHeight = 0.0f;
+    if (cameraAspect > windowAspect) {
+        blackBarHeight = (static_cast<float>(window_height) - static_cast<float>(swapChainExtent.width) / cameraAspect) / 2.0f;
+    }
+    else {
+        blackBarWidth = (static_cast<float>(window_width) - static_cast<float>(swapChainExtent.height) * cameraAspect) / 2.0f;
+    }
+
+    // std::cout << "blackBarWidth: " << blackBarWidth << " blackBarHeight: " << blackBarHeight << std::endl;
     VkViewport viewport {
-        .x = 0.0f,
-        .y = 0.0f,
-        .width = static_cast<float>(swapChainExtent.width),
-        .height = static_cast<float>(swapChainExtent.height),
+        .x = blackBarWidth,
+        .y = blackBarHeight,
+        .width = static_cast<float>(swapChainExtent.width) - 2.0f * blackBarWidth,
+        .height = static_cast<float>(swapChainExtent.height) - 2.0f * blackBarHeight,
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
     };
     
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = swapChainExtent;
+    VkOffset2D scissorOffset {
+        .x = static_cast<int32_t>(blackBarWidth),
+        .y = static_cast<int32_t>(blackBarHeight)
+    };
+    VkExtent2D scissorExtent {
+        .width = static_cast<uint32_t>(swapChainExtent.width) - 2 * static_cast<uint32_t>(blackBarWidth),
+        .height = static_cast<uint32_t>(swapChainExtent.height) - 2 * static_cast<uint32_t>(blackBarHeight)
+    };
+
+    VkRect2D scissor {
+        .offset = scissorOffset,
+        .extent = scissorExtent
+    };
 
     VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};

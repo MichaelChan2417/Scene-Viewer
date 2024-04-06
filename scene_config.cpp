@@ -377,6 +377,7 @@ namespace sconfig {
         node->name = std::get<std::string>(obj->contents.at("name"));
         node->id = static_cast<int>(id);
         node->vertex_count = 0;
+        node->light_id = -1;
 
         // below are optional
         if (obj->contents.find("children") != obj->contents.end()) {
@@ -426,6 +427,7 @@ namespace sconfig {
             light->direction = rotation_m * light->direction;
             light->up = rotation_m * light->up;
             // TODO: not sure if light could be combined with children?
+            node->light_id = light_id;
             return node;
         }
 
@@ -474,9 +476,10 @@ namespace sconfig {
         driver->name = std::get<std::string>(obj->contents.at("name"));
         driver->node = static_cast<int>(std::get<double>(obj->contents.at("node")));
         driver->useful = true;
+        driver->light_driver = false;
         std::string prev_name = id2node[driver->node]->driver_name;
-        std::cout << "Driver " << driver->name << " " << driver->node << " " << prev_name << std::endl;
-        std::cout << "Prev name " << prev_name << std::endl;
+        // std::cout << "Driver " << driver->name << " " << driver->node << " " << prev_name << std::endl;
+        // std::cout << "Prev name " << prev_name << std::endl;
         if (!prev_name.empty()) {
             name2driver[prev_name]->useful = false;
         }
@@ -485,6 +488,11 @@ namespace sconfig {
         driver->times = std::get<std::vector<double>>(obj->contents.at("times"));
         driver->values = std::get<std::vector<double>>(obj->contents.at("values"));
         driver->interpolation = std::get<std::string>(obj->contents.at("interpolation"));
+
+        std::shared_ptr<Node> node = id2node[driver->node];
+        if (node->light_id != -1) {
+            driver->light_driver = true;
+        }
 
         return driver;
     }
@@ -555,13 +563,13 @@ namespace sconfig {
             if (channel == "translation") {
                 cglm::Vec3f vt1 = cglm::Vec3f{ static_cast<float>(values[idx*3]), static_cast<float>(values[idx*3+1]), static_cast<float>(values[idx*3+2]) };
                 cglm::Vec3f vt2 = cglm::Vec3f{ static_cast<float>(values[(idx+1)*3]), static_cast<float>(values[(idx+1)*3+1]), static_cast<float>(values[(idx+1)*3+2]) };
-                std::cout << "Do you really want SLERP for translation?" << std::endl;
+                // std::cout << "Do you really want SLERP for translation?" << std::endl;
                 return cglm::translation(vt1 * (1 - t) + vt2 * t);
             }
             if (channel == "scale") {
                 cglm::Vec3f vs1 = cglm::Vec3f{ static_cast<float>(values[idx*3]), static_cast<float>(values[idx*3+1]), static_cast<float>(values[idx*3+2]) };
                 cglm::Vec3f vs2 = cglm::Vec3f{ static_cast<float>(values[(idx+1)*3]), static_cast<float>(values[(idx+1)*3+1]), static_cast<float>(values[(idx+1)*3+2]) };
-                std::cout << "Do you really want SLERP for scale?" << std::endl;
+                // std::cout << "Do you really want SLERP for scale?" << std::endl;
                 return cglm::scale(vs1 * (1 - t) + vs2 * t);
             }
         }
@@ -725,12 +733,12 @@ namespace sconfig {
             }
         }
 
-        for (auto& [id, light] : id2lights) {
-            // print direction
-            std::cout << light->position[0] << " " << light->position[1] << " " << light->position[2] << std::endl;
-            std::cout << light->direction[0] << " " << light->direction[1] << " " << light->direction[2] << std::endl;
-            std::cout << std::endl;
-        }
+        // for (auto& [id, light] : id2lights) {
+        //     // print direction
+        //     std::cout << light->position[0] << " " << light->position[1] << " " << light->position[2] << std::endl;
+        //     std::cout << light->direction[0] << " " << light->direction[1] << " " << light->direction[2] << std::endl;
+        //     std::cout << std::endl;
+        // }
         
         // cleanups
         for (auto obj : objects) {

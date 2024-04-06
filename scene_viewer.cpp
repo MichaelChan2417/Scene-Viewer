@@ -408,6 +408,24 @@ void SceneViewer::setup_frame_instances(double inTime) {
             //     continue;
             // }
             cglm::Mat44f animation_transform = driver->getCurrentTransform(dtime);
+
+            if (driver->light_driver) {
+                int node_id = driver->node;
+                std::shared_ptr<sconfig::Node> light_node = scene_config.id2node[node_id];
+                int light_id = light_node->light_id;
+                std::shared_ptr<sconfig::Light> light = scene_config.id2lights[light_id];
+                if (driver->channel == "translation") {
+                    cglm::Vec4f npos = animation_transform * cglm::Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+                    light->position = { npos[0] / npos[3], npos[1] / npos[3], npos[2] / npos[3] };
+                    // std::cout << "Light Position: " << light->position[0] << " " << light->position[1] << " " << light->position[2] << std::endl;
+                }
+                else if (driver->channel == "rotation") {
+                    light->direction = animation_transform * cglm::Vec3f{ 0.0f, 0.0f, -1.0f };
+                    light->up = animation_transform * cglm::Vec3f{ 0.0f, 1.0f, 0.0f };
+                }
+                continue;
+            }
+
             if (driver->channel == "translation")
                 scene_config.id2node[driver->node]->translation = animation_transform;
             else if (driver->channel == "rotation")
@@ -415,6 +433,8 @@ void SceneViewer::setup_frame_instances(double inTime) {
             else if (driver->channel == "scale")
                 scene_config.id2node[driver->node]->scale = scene_config.id2node[driver->node]->translation = animation_transform;
         }
+
+
     }
     
     for (auto node_id : scene_config.scene->children) {
@@ -469,4 +489,5 @@ void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f paren
         frame_material_meshInnerId2ModelMatrices[currentFrame][materialType][inner_id].push_back(curTransform);
         // std::cout << "Material " << materialType << " InnerId " << inner_id << std::endl;
     }
+
 }

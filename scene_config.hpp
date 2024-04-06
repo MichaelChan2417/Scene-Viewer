@@ -115,6 +115,8 @@ namespace sconfig {
         int camera;
         int vertex_count;
 
+        int light_id;
+
         std::vector<std::shared_ptr<Instance>> instances;
     };
 
@@ -126,6 +128,7 @@ namespace sconfig {
         std::vector<double> values;
         std::string interpolation;  // interpolation could be "STEP" or "LINEAR" or "SLERP"
         bool useful;
+        bool light_driver;
 
         cglm::Mat44f getCurrentTransform(double time);
     };
