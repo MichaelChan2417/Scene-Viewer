@@ -13,4 +13,7 @@ D:\STUDY\Vulkan\Bin\glslc.exe lambertian\shader.lambertian.frag -o lambertian\fr
 D:\STUDY\Vulkan\Bin\glslc.exe pbr\shader.pbr.vert -o pbr\vert.spv
 D:\STUDY\Vulkan\Bin\glslc.exe pbr\shader.pbr.frag -o pbr\frag.spv
 
+D:\STUDY\Vulkan\Bin\glslc.exe shadow\shader.shadow.vert -o shadow\vert.spv
+D:\STUDY\Vulkan\Bin\glslc.exe shadow\shader.shadow.frag -o shadow\frag.spv
+
 pause

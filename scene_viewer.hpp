@@ -19,6 +19,7 @@
 #include "scene_config.hpp"
 
 const int MAX_INSTANCE = 128;
+const int MAX_LIGHT = 8;
 
 struct Vertex {
     cglm::Vec3f pos;
@@ -136,6 +137,18 @@ struct UniformBufferObject {
     cglm::Mat44f view;
     cglm::Mat44f proj;
     cglm::Mat44f instanceModels[MAX_INSTANCE];
+};
+
+struct LightUniformBufferObject {
+    alignas(16)cglm::Vec4f lightPos[MAX_LIGHT];
+    alignas(16)cglm::Vec4f lightDir[MAX_LIGHT];
+    alignas(16)cglm::Vec4f lightColor[MAX_LIGHT];
+
+    alignas(16)cglm::Mat44f lightViewMatrix[MAX_LIGHT];
+    alignas(16)cglm::Mat44f lightProjMatrix[MAX_LIGHT];
+
+    alignas(16)cglm::Vec4f metadata1[MAX_LIGHT];
+    alignas(16)cglm::Vec4f metadata2[MAX_LIGHT];
 };
 
 extern std::vector<Vertex> static_vertices;
@@ -279,6 +292,37 @@ public:
     VkDeviceMemory colorImageMemory;
     VkImageView colorImageView;
 
+    // light corresponding
+    std::vector<VkImage> shadowMapImages;
+    std::vector<VkDeviceMemory> shadowMapImageMemorys;
+    std::vector<VkImageView> shadowMapImageViews;
+    VkSampler shadowMapSampler;
+    std::vector<VkImage> shadowMapCubeImages;
+    std::vector<VkDeviceMemory> shadowMapCubeImageMemorys;
+    std::vector<VkImageView> shadowMapCubeImageViews;
+    std::vector<std::vector<VkImageView>> shadowMapCubeFacesImageViews;
+    VkSampler shadowMapCubeSampler;
+
+    VkRenderPass shadowRenderPass;
+    std::vector<VkFramebuffer> shadowMapFramebuffers;
+    std::vector<std::vector<VkFramebuffer>> shadowMapCubeFramebuffers;
+    
+    VkPipelineLayout shadowPipelineLayout;
+    VkPipeline shadowGraphicsPipeline;
+    VkDescriptorSetLayout shadowDescriptorSetLayout;
+    std::vector<VkBuffer> shadowUniformBuffers;
+    std::vector<VkDeviceMemory> shadowUniformBuffersMemory;
+    std::vector<void*> shadowUniformBuffersMapped;
+    VkDescriptorPool shadowDescriptorPool;
+    std::vector<VkDescriptorSet> shadowDescriptorSets;
+
+    std::vector<VkImage> shadowDepthImages;                 // depth test over image
+    std::vector<VkDeviceMemory> shadowDepthImageMemorys;
+    std::vector<VkImageView> shadowDepthImageViews;
+    std::vector<VkImage> shadowCubeDepthImages;                 // depth test over image
+    std::vector<VkDeviceMemory> shadowCubeDepthImageMemorys;
+    std::vector<VkImageView> shadowCubeDepthImageViews;
+
     // headless specs
     VkFramebuffer headlessFramebuffer;
     VkImage dstImage;
@@ -288,6 +332,7 @@ public:
     std::chrono::high_resolution_clock::time_point startTime;
 
     static bool leftMouseButtonPressed;
+    static bool rightMouseButtonPressed;
     static double lastXPos, lastYPos;
     bool animationPlay = false;
 
@@ -327,6 +372,24 @@ public:
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
     VkFormat findDepthFormat();
     bool hasStencilComponent(VkFormat format);
+
+    // light source management
+    void lightSetup();
+    void createLightResources();
+    void createShadowDescriptorSetLayout();
+    void createShadowGraphicsPipeline();
+    void createLightFrameBuffers();
+    void createLightImagewithViews();
+    void createShadowMapSampler();
+    void createLightUniformBuffers();
+    void createLightDescriptorPool();
+    void createLightDescriptorSets();
+    void updateLightUniformBuffer(uint32_t currentImage, int idx, int light_id);
+    void updateWholeLightUniformBuffer(uint32_t currentImage, LightUniformBufferObject& lubo);
+    void updateCurLightUBOIndex(uint32_t currentFrame, int idx, LightUniformBufferObject& lubo);
+    void singleShadowRenderPass(VkCommandBuffer commandBuffer, int spot_idx, int sphere_idx, int light_id);
+    void singleCubeShadowRenderPass(VkCommandBuffer commandBuffer, int spot_idx, int sphere_idx, int light_id);
+    void cleanShadowResources();
 
     // texture
     void createTextureImage();
@@ -373,7 +436,7 @@ public:
     void createGraphicsPipeline(MaterialType mt);
     void createGraphicsPipelines();
     VkShaderModule createShaderModule(const std::vector<char>& code);
-    void createRenderPass();
+    void createRenderPass(VkFormat format, VkRenderPass& pRenderpass, VkImageLayout colorFinalLayout);
     void createHeadlessRenderPass();
 
     // image views

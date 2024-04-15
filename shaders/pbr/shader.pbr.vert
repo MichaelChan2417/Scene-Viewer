@@ -32,12 +32,15 @@ layout(location = 5) in vec3 pbrs;
 // OUTS:
 layout(location = 0) out vec3 fragNormal;       // this is for lighting
 layout(location = 1) out vec2 fragTexCoord;
-layout(location = 2) out OutputBlock outputData;
+layout(location = 2) out vec3 fragWorldPos;
+layout(location = 3) out OutputBlock outputData;
 
 void main() {
     mat4 normalMatrix = transpose(inverse(ubo.instanceModels[gl_InstanceIndex]));
     vec4 after_Pos = ubo.instanceModels[gl_InstanceIndex] * vec4(inPosition, 1.0);
     gl_Position = ubo.proj * ubo.view * after_Pos;
+
+    fragWorldPos = after_Pos.xyz;
 
     vec3 rNormal = mat3(normalMatrix) * inNormal;
     fragTexCoord = texCoord;

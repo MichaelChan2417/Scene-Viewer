@@ -5,10 +5,12 @@ std::vector<Vertex> static_vertices;
 std::vector<Vertex> indexed_vertices;
 
 bool SceneViewer::leftMouseButtonPressed = false;
+bool SceneViewer::rightMouseButtonPressed = false;
 double SceneViewer::lastXPos;
 double SceneViewer::lastYPos;
 
 void SceneViewer::initVulkan() {
+    std::cout << "Init Vulkan..." << std::endl;
     createInstance();
     setupDebugMessenger();
     createSurface();
@@ -18,33 +20,54 @@ void SceneViewer::initVulkan() {
     createSwapChain();
     createImageViews();
 
-    createRenderPass();
+    // something should also pull ahead
+
+
+    createRenderPass(swapChainImageFormat, renderPass, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    std::cout << 0 << std::endl;
     createDescriptorSetLayout();
+    std::cout << 1 << std::endl;
     createGraphicsPipelines();
+    std::cout << 2 << std::endl;
     createCommandPool();
+    std::cout << 3 << std::endl;
     createDepthResources();
+    std::cout << 4 << std::endl;
     createFramebuffers();
 
     // createTextureImage();
     // createTextureImageView();
     createTextureImagesWithViews();
+    std::cout << 5 << std::endl;
     createTextureSampler();
+    std::cout << 6 << std::endl;
 
     createVertexBuffer();
+    std::cout << 7 << std::endl;
     createIndexBuffer();
     createUniformBuffers();
 
+    // Light resources should pull ahead!!!
+    createLightResources();
+
     createDescriptorPool();
+    std::cout << 8 << std::endl;
     createDescriptorSets();
+    std::cout << 9 << std::endl;
     createCommandBuffers();
+    std::cout << 10 << std::endl;
     createSyncObjects();
-    
+    std::cout << 11 << std::endl;
+
 }
 
 void SceneViewer::cleanup() {
 
     cleanupSwapChain();
-    
+
+    // clear shadow depth resources
+    cleanShadowResources();
+
     vkDestroySampler(device, textureSampler2D, nullptr);
     vkDestroySampler(device, textureSamplerCube, nullptr);
 
@@ -78,11 +101,6 @@ void SceneViewer::cleanup() {
     }
     vkDestroyRenderPass(device, renderPass, nullptr);
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-        vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
-    }
-
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
     
@@ -111,6 +129,21 @@ void SceneViewer::cleanup() {
 
     glfwDestroyWindow(window);
     glfwTerminate();
+}
+
+void SceneViewer::loadCheck() {
+    // initialize frame instances
+    frame_material_meshInnerId2ModelMatrices.resize(MAX_FRAMES_IN_FLIGHT);
+
+    texturePrepare();
+
+    std::cout << "In loadCheck(), we have " << scene_config.id2instance.size() << " instances" << std::endl;
+
+    // check if we have this camera
+    if (scene_config.cameras.find(scene_config.cur_camera) == scene_config.cameras.end()) {
+        throw std::runtime_error("Camera " + scene_config.cur_camera + " not found in scene file");
+    }
+    scene_config.cur_camera = camera_name;
 }
 
 void SceneViewer::initWindow() {
@@ -163,21 +196,6 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
     else {
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
-}
-
-void SceneViewer::loadCheck() {
-    // initialize frame instances
-    frame_material_meshInnerId2ModelMatrices.resize(MAX_FRAMES_IN_FLIGHT);
-
-    texturePrepare();
-
-    std::cout << "In loadCheck(), we have " << scene_config.id2instance.size() << " instances" << std::endl;
-
-    // check if we have this camera
-    if (scene_config.cameras.find(scene_config.cur_camera) == scene_config.cameras.end()) {
-        throw std::runtime_error("Camera " + scene_config.cur_camera + " not found in scene file");
-    }
-    scene_config.cur_camera = camera_name;
 }
 
 void SceneViewer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -295,11 +313,20 @@ void SceneViewer::mouse_control_callback(GLFWwindow* window, int button, int act
             leftMouseButtonPressed = false;
         }
     }
+    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+        if (action == GLFW_PRESS) {
+            rightMouseButtonPressed = true;
+            glfwGetCursorPos(window, &lastXPos, &lastYPos);
+        }
+        else if (action == GLFW_RELEASE) {
+            rightMouseButtonPressed = false;
+        }
+    }
 }
 
 void SceneViewer::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
-    
+
     // only debug user & debug can be controlled
     if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
         return;
@@ -313,27 +340,36 @@ void SceneViewer::scroll_callback(GLFWwindow* window, double xoffset, double yof
 }
 
 void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+    double deltaX = xpos - lastXPos;
+    double deltaY = ypos - lastYPos;
+
+    glfwGetCursorPos(window, &lastXPos, &lastYPos);
+
+    if (deltaX == 0 && deltaY == 0) {
+        return;
+    }
+
+    auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
+    // only debug user & debug can be controlled
+    if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
+        return;
+    }
+
+    std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
+
+    // camera moving
+    if (leftMouseButtonPressed && rightMouseButtonPressed) {
+        // move up and down
+        cglm::Vec3f dir_axis = normalize(camera->up);
+        cglm::Vec3f new_pos = camera->position + dir_axis * 0.01f * static_cast<float>(deltaY);
+        // move left and right
+        cglm::Vec3f right_axis = normalize(cglm::cross(camera->dir, camera->up));
+        new_pos = new_pos - right_axis * 0.01f * static_cast<float>(deltaX);
+        camera->position = new_pos;
+    }
+
     // move will trigger this callback.
-    if (leftMouseButtonPressed) {
-        double deltaX = xpos - lastXPos;
-        double deltaY = ypos - lastYPos;
-
-        glfwGetCursorPos(window, &lastXPos, &lastYPos);
-
-        if (deltaX == 0 && deltaY == 0) {
-            return;
-        }
-
-        // std::cout << "lastX: " << deltaX << " lastY: " << deltaY << std::endl;
-
-
-        auto app = reinterpret_cast<SceneViewer*>(glfwGetWindowUserPointer(window));
-        // only debug user & debug can be controlled
-        if (app->scene_config.cur_camera != "user" && app->scene_config.cur_camera != "debug") {
-            return;
-        }
-
-        std::shared_ptr<sconfig::Camera> camera = app->scene_config.cameras[app->scene_config.cur_camera];
+    else if (leftMouseButtonPressed) {
         // rotate around up axis
         cglm::Mat44f rot_up = cglm::rotate(camera->up, static_cast<float>(cglm::to_radians(0.1f) * deltaX));
         // need to calculate cross to get rotate2 axis
@@ -342,9 +378,6 @@ void SceneViewer::cursor_position_callback(GLFWwindow* window, double xpos, doub
 
         cglm::Vec3f new_dir = rot2 * rot_up * camera->dir;
         cglm::Vec3f new_up = rot2 * camera->up;
-
-        // std::cout << "New Up: " << new_up[0] << " " << new_up[1] << " " << new_up[2] << std::endl;
-        // std::cout << "New Dir: " << new_dir[0] << " " << new_dir[1] << " " << new_dir[2] << std::endl;
 
         //if any value is nan, throw error
         if (std::isnan(new_up[0]) || std::isnan(new_up[1]) || std::isnan(new_up[2]) || std::isnan(new_dir[0]) || std::isnan(new_dir[1]) || std::isnan(new_dir[2])) {
@@ -375,6 +408,24 @@ void SceneViewer::setup_frame_instances(double inTime) {
             //     continue;
             // }
             cglm::Mat44f animation_transform = driver->getCurrentTransform(dtime);
+
+            if (driver->light_driver) {
+                int node_id = driver->node;
+                std::shared_ptr<sconfig::Node> light_node = scene_config.id2node[node_id];
+                int light_id = light_node->light_id;
+                std::shared_ptr<sconfig::Light> light = scene_config.id2lights[light_id];
+                if (driver->channel == "translation") {
+                    cglm::Vec4f npos = animation_transform * cglm::Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
+                    light->position = { npos[0] / npos[3], npos[1] / npos[3], npos[2] / npos[3] };
+                    // std::cout << "Light Position: " << light->position[0] << " " << light->position[1] << " " << light->position[2] << std::endl;
+                }
+                else if (driver->channel == "rotation") {
+                    light->direction = animation_transform * cglm::Vec3f{ 0.0f, 0.0f, -1.0f };
+                    light->up = animation_transform * cglm::Vec3f{ 0.0f, 1.0f, 0.0f };
+                }
+                continue;
+            }
+
             if (driver->channel == "translation")
                 scene_config.id2node[driver->node]->translation = animation_transform;
             else if (driver->channel == "rotation")
@@ -382,6 +433,8 @@ void SceneViewer::setup_frame_instances(double inTime) {
             else if (driver->channel == "scale")
                 scene_config.id2node[driver->node]->scale = scene_config.id2node[driver->node]->translation = animation_transform;
         }
+
+
     }
     
     for (auto node_id : scene_config.scene->children) {
@@ -423,9 +476,10 @@ void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f paren
             ++ii;
         }
 
-        if (!visible) {
-            continue;
-        }
+        // if (!visible) {
+        //     // std::cout << "Mesh " << mesh_id << " is not visible" << std::endl;
+        //     continue;
+        // }
 
         // based on material & mesh, insert it
         int material_id = scene_config.id2mesh[mesh_id]->material_id;
@@ -435,4 +489,5 @@ void SceneViewer::dfs_instance(int node_id, int currentFrame, cglm::Mat44f paren
         frame_material_meshInnerId2ModelMatrices[currentFrame][materialType][inner_id].push_back(curTransform);
         // std::cout << "Material " << materialType << " InnerId " << inner_id << std::endl;
     }
+
 }

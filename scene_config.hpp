@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <map>
 #include <string>
 #include <vector>
 #include <array>
@@ -21,7 +22,7 @@ struct RgbaData {
     uint8_t r, g, b, a;
 };
 
-enum MaterialType {
+enum class MaterialType {
     pbr,
     lambertian,
     mirror,
@@ -29,7 +30,7 @@ enum MaterialType {
     simple,
 };
 
-enum TextureType {
+enum class TextureType {
     texture2D,
     textureCube,
 };
@@ -114,6 +115,8 @@ namespace sconfig {
         int camera;
         int vertex_count;
 
+        int light_id;
+
         std::vector<std::shared_ptr<Instance>> instances;
     };
 
@@ -125,6 +128,7 @@ namespace sconfig {
         std::vector<double> values;
         std::string interpolation;  // interpolation could be "STEP" or "LINEAR" or "SLERP"
         bool useful;
+        bool light_driver;
 
         cglm::Mat44f getCurrentTransform(double time);
     };
@@ -163,6 +167,42 @@ namespace sconfig {
         std::string texture_format;
     };
 
+
+    struct Sun {
+        float angle;
+        float strength;
+    };
+    struct Sphere {
+        float radius;
+        float power;
+        float limit;
+    };
+    struct Spot {
+        float radius;
+        float power;
+        float fov;
+        float blend;
+        float limit;
+    };
+    using LightData = std::variant<Sun, Sphere, Spot>;
+    enum class LightType {
+        SUN,
+        SPHERE,
+        SPOT
+    };
+    struct Light {
+        LightType type;
+        std::string name;
+        std::array<float, 3> tint;
+        LightData data;
+        int shadow;
+
+        cglm::Vec3f position;
+        cglm::Vec3f direction;
+        cglm::Vec3f up;
+    };
+
+
     struct Scene {
         std::string name;
         std::vector<int> children;
@@ -189,6 +229,8 @@ namespace sconfig {
         std::shared_ptr<Scene> scene;
         std::shared_ptr<Environment> environment;
 
+        std::map<int, std::shared_ptr<Light>> id2lights;
+
         std::string cur_camera;
         int cur_instance;
         int cur_mesh;
@@ -205,6 +247,7 @@ namespace sconfig {
         std::shared_ptr<Driver> generateDriver(const mcjp::Object* obj);
         std::shared_ptr<Material> generateMaterial(const mcjp::Object* obj);
         std::shared_ptr<Environment> generateEnvironment(const mcjp::Object* obj);
+        std::shared_ptr<Light> generateLight(const mcjp::Object* obj);
     };
 
 

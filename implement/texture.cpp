@@ -11,7 +11,7 @@ void SceneViewer::createTextureImagesWithViews() {
     // start with 2D's
     std::unordered_map<std::string, int> texture2D2Idx = scene_config.texture2D2Idx;
     for (auto& [file_name, idx] : texture2D2Idx) {
-        // std::cout << "loading 2D texture " << file_name << " with idx " << idx << std::endl;
+        std::cout << "loading 2D texture " << file_name << " with idx " << idx << std::endl;
         createTextureImage2D(file_name, idx);
         texture2DImageViews[idx] = createImageView2D(texture2DImages[idx], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     }
@@ -19,7 +19,7 @@ void SceneViewer::createTextureImagesWithViews() {
     // then cube's
     std::unordered_map<std::string, int> textureCube2Idx = scene_config.textureCube2Idx;
     for (auto& [file_name, idx] : textureCube2Idx) {
-        // std::cout << "loading cube texture " << file_name << " with idx " << idx << std::endl;
+        std::cout << "loading cube texture " << file_name << " with idx " << idx << std::endl;
         createTextureImageCube(file_name, idx);
         textureCubeImageViews[idx] = createImageViewCube(textureCubeImages[idx], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
     }
@@ -136,19 +136,24 @@ void SceneViewer::createTextureSampler() {
 
 
 void SceneViewer::texturePrepare() {
+    std::cout << "Preparing textures..." << std::endl;
     // first is environment
     std::shared_ptr<sconfig::Environment> env = scene_config.environment;
-    scene_config.textureCube2Idx[env->texture_src] = scene_config.textureCube2Idx.size();
+    // env could be nullptr
+    if (env != nullptr) {
+        scene_config.textureCube2Idx[env->texture_src] = scene_config.textureCube2Idx.size();
+    }
 
     // then is a environment light sampler
     scene_config.textureCube2Idx["textures/out.lambertian.png"] = scene_config.textureCube2Idx.size();
 
-    // then for pbr
-    for (int i = 0; i <= 10; i++) {
-        scene_config.textureCube2Idx["textures/pbr/out.ggx." + std::to_string(i) + ".png"] = scene_config.textureCube2Idx.size();
-    }
-    // also with lut
-    scene_config.texture2D2Idx["textures/pbr/out.lut.png"] = scene_config.texture2D2Idx.size();
+    // then for pbr 
+    // TODO: note I cancel out the pbr values here
+    // for (int i = 0; i <= 10; i++) {
+    //     scene_config.textureCube2Idx["textures/pbr/out.ggx." + std::to_string(i) + ".png"] = scene_config.textureCube2Idx.size();
+    // }
+    // // also with lut
+    // scene_config.texture2D2Idx["textures/pbr/out.lut.png"] = scene_config.texture2D2Idx.size();
 
     // default color
     scene_config.texture2D2Idx["textures/default2D.png"] = scene_config.texture2D2Idx.size();

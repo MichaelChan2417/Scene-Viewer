@@ -9,7 +9,7 @@ void SceneViewer::createFramebuffers() {
             depthImageView
         };
 
-        VkFramebufferCreateInfo framebufferInfo{
+        VkFramebufferCreateInfo framebufferInfo {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .renderPass = renderPass,
             .attachmentCount = static_cast<uint32_t>(attachments.size()),
@@ -120,12 +120,41 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
         throw std::runtime_error("failed to begin recording command buffer!");
     }
 
+    // first make the update, for both rendering use
+    // TODO: !!!!!!!!!!!!!!!!! I should update buffer for second shader
+    updateUniformBuffer(currentFrame);
+
     // begin drawing, (render pass)
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{1.0f, 0.5976f, 1.0f, 1.0f}};
+    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
-    VkRenderPassBeginInfo renderPassInfo {
+    // TODO: instead, I begin a render pass for shadow map
+    LightUniformBufferObject lubo{};
+    updateWholeLightUniformBuffer(currentFrame, lubo);
+
+    int spot_idx = 0, sphere_idx = 0;
+    for (auto& [id, light] : scene_config.id2lights) {
+        // updateCurLightUBOIndex(currentFrame, spot_idx + sphere_idx, lubo);
+        if (light->type == sconfig::LightType::SPOT) {
+            singleShadowRenderPass(commandBuffer, spot_idx, sphere_idx, id);
+            ++spot_idx;
+        } else if (light->type == sconfig::LightType::SPHERE) {
+            singleCubeShadowRenderPass(commandBuffer, spot_idx, sphere_idx, id);
+            ++sphere_idx;
+        }
+    }
+    
+    // std::cout << lidx << std::endl;
+    /*
+        Learning from vulkan example: this is important!
+        Note: Explicit synchronization is not required between the render pass,
+        as this is done implicit via sub pass dependencies
+    */
+    
+    // content drawing
+    // updateUniformBuffer(currentFrame);
+    VkRenderPassBeginInfo renderPassInfo{
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         .renderPass = renderPass,
         .framebuffer = swapChainFramebuffers[imageIndex],
@@ -138,35 +167,47 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     };
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+    
+    double windowAspect = static_cast<double>(window_width) / static_cast<double>(window_height);
+    std::string cur_camera = scene_config.cur_camera;
+    double cameraAspect = scene_config.cameras[cur_camera]->aspect;
+
     // some pre-sets
-    VkViewport viewport{
-        .x = 0.0f,
-        .y = 0.0f,
-        .width = static_cast<float>(swapChainExtent.width),
-        .height = static_cast<float>(swapChainExtent.height),
+    float blackBarWidth = 0.0f;
+    float blackBarHeight = 0.0f;
+    if (cameraAspect > windowAspect) {
+        blackBarHeight = (static_cast<float>(window_height) - static_cast<float>(swapChainExtent.width) / cameraAspect) / 2.0f;
+    }
+    else {
+        blackBarWidth = (static_cast<float>(window_width) - static_cast<float>(swapChainExtent.height) * cameraAspect) / 2.0f;
+    }
+
+    // std::cout << "blackBarWidth: " << blackBarWidth << " blackBarHeight: " << blackBarHeight << std::endl;
+    VkViewport viewport {
+        .x = blackBarWidth,
+        .y = blackBarHeight,
+        .width = static_cast<float>(swapChainExtent.width) - 2.0f * blackBarWidth,
+        .height = static_cast<float>(swapChainExtent.height) - 2.0f * blackBarHeight,
         .minDepth = 0.0f,
         .maxDepth = 1.0f,
     };
     
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = swapChainExtent;
+    VkOffset2D scissorOffset {
+        .x = static_cast<int32_t>(blackBarWidth),
+        .y = static_cast<int32_t>(blackBarHeight)
+    };
+    VkExtent2D scissorExtent {
+        .width = static_cast<uint32_t>(swapChainExtent.width) - 2 * static_cast<uint32_t>(blackBarWidth),
+        .height = static_cast<uint32_t>(swapChainExtent.height) - 2 * static_cast<uint32_t>(blackBarHeight)
+    };
+
+    VkRect2D scissor {
+        .offset = scissorOffset,
+        .extent = scissorExtent
+    };
 
     VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};
-
-    // bind graphics pipeline -> multiple times
-    // for (auto& pair : material2Pipelines) {
-    //     MaterialType materialType = pair.first;
-    //     VkPipeline graphicsPipeline = pair.second;
-
-    //     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    //     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-    //     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-    //     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    //     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material2PipelineLayouts[materialType], 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-    //     frameRealDraw(commandBuffer, materialType);
-    // }
 
     auto& cur_frame_material_meshInnerId2ModelMatrices = frame_material_meshInnerId2ModelMatrices[currentFrame];
     int curInstanceIndex = 0;
@@ -243,14 +284,11 @@ void SceneViewer::drawFrame() {
     // } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     //     throw std::runtime_error("failed to acquire swap chain image!");
     // }
-
-    updateUniformBuffer(currentFrame);
     
     // Only reset the fence if we are submitting work
     vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
-
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
     // submit command buffer to graphics queue
@@ -311,7 +349,7 @@ void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, int& currentInsta
         int numInstances = modelMatrices.size();
         // vertexIndex is the offset
         int vertexIndex = meshInnerId2Offset[meshInnerId];
-
+        // std::cout << vertexCount << " " << numInstances << " " << vertexIndex << " " << currentInstanceIdx << " | \n";
         if (numInstances == 0) {
             continue;
         }
@@ -327,6 +365,7 @@ void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, int& currentInsta
     }
 
     // std::cout << std::endl;
+    // std::cout << "currentInstanceIdx: " << currentInstanceIdx << std::endl;
 
     // // for each vertex, got all instance copy in this frame
     // std::vector<std::vector<cglm::Mat44f>> curFrameInstances = frame_instances[currentFrame];  // vector is mesh based
