@@ -1,6 +1,6 @@
 #version 450
 
-const int MAX_INSTANCE = 128;
+const int MAX_INSTANCE = 32;
 
 layout(binding = 0) uniform UniformBufferObject {
     vec3 cameraPos;

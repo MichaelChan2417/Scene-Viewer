@@ -1,6 +1,6 @@
 #version 450
 
-const int MAX_INSTANCE = 128;
+const int MAX_INSTANCE = 32;
 
 layout(binding = 1) uniform sampler2D tex2DSampler[MAX_INSTANCE];
 layout(binding = 2) uniform samplerCube texCubeSampler[MAX_INSTANCE];

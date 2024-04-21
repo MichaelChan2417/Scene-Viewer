@@ -26,7 +26,8 @@ SOURCES = scene_viewer.cpp main.cpp scene_config.cpp libs/mcjp.cpp \
 			implement/depth_resources.cpp \
 			implement/texture.cpp \
 			implement/helper_command.cpp  \
-			implement/light_source.cpp
+			implement/light_source.cpp	\
+			implement/cloud_implement.cpp	
 
 # 生成目标文件列表
 # OBJECTS = $(SOURCES:.cpp=.o)

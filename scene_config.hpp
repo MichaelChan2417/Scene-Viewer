@@ -202,6 +202,13 @@ namespace sconfig {
         cglm::Vec3f up;
     };
 
+    struct Cloud {
+        std::string model;
+        std::string noise;
+        std::vector<cglm::Vec3f> vertices;
+        std::vector<uint16_t> indices;
+    };
+
 
     struct Scene {
         std::string name;
@@ -231,6 +238,8 @@ namespace sconfig {
 
         std::map<int, std::shared_ptr<Light>> id2lights;
 
+        std::map<int, std::shared_ptr<Cloud>> id2clouds;
+
         std::string cur_camera;
         int cur_instance;
         int cur_mesh;
@@ -248,6 +257,7 @@ namespace sconfig {
         std::shared_ptr<Material> generateMaterial(const mcjp::Object* obj);
         std::shared_ptr<Environment> generateEnvironment(const mcjp::Object* obj);
         std::shared_ptr<Light> generateLight(const mcjp::Object* obj);
+        std::shared_ptr<Cloud> generateCloud(const mcjp::Object* obj);
     };
 
 

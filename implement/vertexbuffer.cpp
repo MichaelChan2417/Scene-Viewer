@@ -6,6 +6,18 @@ void SceneViewer::createVertexBuffer() {
     createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexBuffer, vertexBufferMemory);
 }
 
+void SceneViewer::createCloudVertexBuffers() {
+    int idx = 0;
+    cloudVertexBuffers.resize(scene_config.id2clouds.size());
+    cloudVertexBufferMemorys.resize(scene_config.id2clouds.size());
+
+    for (const auto& [id, cloudPtr] : scene_config.id2clouds) {
+        VkDeviceSize bufferSize = sizeof(CloudVertex) * cloudPtr->vertices.size();
+        createBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, cloudVertexBuffers[idx], cloudVertexBufferMemorys[idx]);
+        idx++;
+    }
+}
+
 void SceneViewer::copyVertexToBuffer() {
     // based on current valid vertices
     VkDeviceSize bufferSize = sizeof(Vertex) * frame_vertices_static[currentFrame].size();
@@ -13,6 +25,19 @@ void SceneViewer::copyVertexToBuffer() {
     vkMapMemory(device, vertexBufferMemory, 0, bufferSize, 0, &data);
         memcpy(data, frame_vertices_static[currentFrame].data(), static_cast<size_t>(bufferSize));
     vkUnmapMemory(device, vertexBufferMemory);
+}
+
+void SceneViewer::copyCloudVertexToBuffer() {
+    int idx = 0;
+    for (const auto& [id, cloudPtr] : scene_config.id2clouds) {
+        VkDeviceSize bufferSize = sizeof(CloudVertex) * cloudPtr->vertices.size();
+        void* data;
+        vkMapMemory(device, cloudVertexBufferMemorys[idx], 0, bufferSize, 0, &data);
+            memcpy(data, cloudPtr->vertices.data(), static_cast<size_t>(bufferSize));
+        vkUnmapMemory(device, cloudVertexBufferMemorys[idx]);
+        idx++;
+    }
+
 }
 
 void SceneViewer::copyAllMeshVertexToBuffer() {
@@ -108,6 +133,13 @@ uint32_t SceneViewer::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags 
 
 
 void SceneViewer::createIndexBuffer() {
+
+    if (scene_config.id2clouds.size() == 0) {
+        return;
+    }
+    auto cloudPtr = scene_config.id2clouds.begin()->second;
+    std::vector<uint16_t> indices = cloudPtr->indices;
+
     VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
     VkBuffer stagingBuffer;
@@ -119,9 +151,9 @@ void SceneViewer::createIndexBuffer() {
     memcpy(data, indices.data(), (size_t) bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, cloudIndexBuffer, cloudIndexBufferMemory);
 
-    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+    copyBuffer(stagingBuffer, cloudIndexBuffer, bufferSize);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);

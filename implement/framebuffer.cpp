@@ -121,15 +121,14 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     }
 
     // first make the update, for both rendering use
-    // TODO: !!!!!!!!!!!!!!!!! I should update buffer for second shader
     updateUniformBuffer(currentFrame);
 
     // begin drawing, (render pass)
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    clearValues[0].color = {{0.52f, 0.8f, 0.92f, 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
-    // TODO: instead, I begin a render pass for shadow map
+    // instead, I begin a render pass for shadow map
     LightUniformBufferObject lubo{};
     updateWholeLightUniformBuffer(currentFrame, lubo);
 
@@ -206,38 +205,46 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
         .extent = scissorExtent
     };
 
-    VkBuffer vertexBuffers[] = {vertexBuffer};
     VkDeviceSize offsets[] = {0};
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+
+    // draw contents
     auto& cur_frame_material_meshInnerId2ModelMatrices = frame_material_meshInnerId2ModelMatrices[currentFrame];
     int curInstanceIndex = 0;
 
+    VkBuffer vertexBuffers[] = {vertexBuffer};
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    
     for (auto& pair : cur_frame_material_meshInnerId2ModelMatrices) {
         MaterialType materialType = pair.first;
         auto& meshInnerId2ModelMatrices = pair.second;
-        VkPipeline graphicsPipeline = material2Pipelines[materialType];
+        VkPipeline graphicssPipeline = material2Pipelines[materialType];
 
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicssPipeline);
+        // vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        // vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, material2PipelineLayouts[materialType], 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
         frameRealDraw(commandBuffer, curInstanceIndex, meshInnerId2ModelMatrices);
     }
+    
+    // draw cloud
+    int cloudIdx = 0;
+    for (const auto& [id, cloud] : scene_config.id2clouds) {
+        VkBuffer pcloudVertexBuffers[] = { cloudVertexBuffers[cloudIdx] };
 
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, pcloudVertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, cloudIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cloudPipeline);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, cloudPipelineLayout, 0, 1, &cloudDescriptorSets[currentFrame], 0, nullptr);
 
-    // this is actually drawing
-    // vkCmdDraw(commandBuffer,
-    //     static_cast<uint32_t>(frame_vertices_static[currentFrame].size() / 2),      /* Vertex Count */
-    //     2,      /* Instance Count */
-    //     3,      /* First Vertex, defines lowest value of gl_VertexIndex */
-    //     0       /* First Instance Index, defines lowest of gl_InstanceIndex */
-    // );
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(cloud->indices.size()), 1, 0, 0, 0);
 
-    // if with index buffer
-    // vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-    // vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        cloudIdx++;
+    }
 
     // end drawing, (render pass)
     vkCmdEndRenderPass(commandBuffer);
@@ -366,34 +373,5 @@ void SceneViewer::frameRealDraw(VkCommandBuffer commandBuffer, int& currentInsta
 
     // std::cout << std::endl;
     // std::cout << "currentInstanceIdx: " << currentInstanceIdx << std::endl;
-
-    // // for each vertex, got all instance copy in this frame
-    // std::vector<std::vector<cglm::Mat44f>> curFrameInstances = frame_instances[currentFrame];  // vector is mesh based
-    // int curVertexIndex = 0;
-    // int curInstanceIndex = 0;
-    
-    // // this is also the number of vertices
-    // for (size_t i = 0; i < curFrameInstances.size(); i++) {
-    //     // for each mesh, draw the instance vertexs
-    //     int meshId = scene_config.innerId2meshId[i];
-    //     int vertexCount = scene_config.id2mesh[meshId]->vertex_count;
-    //     int nextVertexIndex = curVertexIndex + vertexCount;
-
-    //     int numInstances = curFrameInstances[i].size();
-    //     if (numInstances == 0) {
-    //         curVertexIndex = nextVertexIndex;
-    //         continue;
-    //     }
-    //     vkCmdDraw(commandBuffer,
-    //         static_cast<uint32_t>(vertexCount),      /* Vertex Count */
-    //         numInstances,           /* Instance Count */
-    //         curVertexIndex,         /* First Vertex, defines lowest value of gl_VertexIndex */
-    //         curInstanceIndex        /* First Instance Index, defines lowest of gl_InstanceIndex */
-    //     );
-    //     // std::cout << "Draw mesh: " << scene_config.id2mesh[meshId]->name << " with " << numInstances << " instances";
-    //     // std::cout << " from vertex " << curVertexIndex << " to " << nextVertexIndex << std::endl;
-    //     curVertexIndex = nextVertexIndex;
-    //     curInstanceIndex += numInstances;
-    // }
 
 }

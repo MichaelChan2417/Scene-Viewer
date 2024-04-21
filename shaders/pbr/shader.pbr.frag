@@ -1,6 +1,6 @@
 #version 450
 
-const int MAX_INSTANCE = 128;
+const int MAX_INSTANCE = 32;
 const int MAX_LIGHT = 8;
 
 // referrencing from https://learnopengl.com/PBR/Lighting

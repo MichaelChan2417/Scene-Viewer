@@ -21,13 +21,14 @@ void SceneViewer::initVulkan() {
     createImageViews();
 
     // something should also pull ahead
-
-
     createRenderPass(swapChainImageFormat, renderPass, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
     std::cout << 0 << std::endl;
     createDescriptorSetLayout();
+    createCloudDescriptorSetLayout();
     std::cout << 1 << std::endl;
     createGraphicsPipelines();
+    std::cout << "Go Cloud " << std::endl;
+    createCloudPipeline();
     std::cout << 2 << std::endl;
     createCommandPool();
     std::cout << 3 << std::endl;
@@ -38,11 +39,14 @@ void SceneViewer::initVulkan() {
     // createTextureImage();
     // createTextureImageView();
     createTextureImagesWithViews();
+    createCloudImagesWithViews();
     std::cout << 5 << std::endl;
     createTextureSampler();
+    createCloudSampler();
     std::cout << 6 << std::endl;
 
     createVertexBuffer();
+    createCloudVertexBuffers();
     std::cout << 7 << std::endl;
     createIndexBuffer();
     createUniformBuffers();
@@ -51,8 +55,10 @@ void SceneViewer::initVulkan() {
     createLightResources();
 
     createDescriptorPool();
+    createCloudDescriptorPool();
     std::cout << 8 << std::endl;
     createDescriptorSets();
+    createCloudDescriptorSets();
     std::cout << 9 << std::endl;
     createCommandBuffers();
     std::cout << 10 << std::endl;
@@ -103,9 +109,14 @@ void SceneViewer::cleanup() {
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-    
-    vkDestroyBuffer(device, indexBuffer, nullptr);
-    vkFreeMemory(device, indexBufferMemory, nullptr);
+
+    // remove cloudIndexBuffers
+    for (int i = 0; i < scene_config.id2clouds.size(); i++) {
+        vkDestroyBuffer(device, cloudVertexBuffers[i], nullptr);
+        vkFreeMemory(device, cloudVertexBufferMemorys[i], nullptr);
+    }
+    vkDestroyBuffer(device, cloudIndexBuffer, nullptr);
+    vkFreeMemory(device, cloudIndexBufferMemory, nullptr);
 
     vkDestroyBuffer(device, vertexBuffer, nullptr);
     vkFreeMemory(device, vertexBufferMemory, nullptr);
@@ -163,7 +174,8 @@ void SceneViewer::initWindow() {
 void SceneViewer::mainLoop() {
 
     copyAllMeshVertexToBuffer();
-    
+    copyCloudVertexToBuffer();
+
     startTime = std::chrono::high_resolution_clock::now();
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();

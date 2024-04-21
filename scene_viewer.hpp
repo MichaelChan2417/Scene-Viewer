@@ -18,8 +18,31 @@
 
 #include "scene_config.hpp"
 
-const int MAX_INSTANCE = 128;
+const int MAX_INSTANCE = 32;
 const int MAX_LIGHT = 8;
+
+struct CloudVertex {
+    cglm::Vec3f pos;
+
+    static VkVertexInputBindingDescription getBindingDescription() {
+        VkVertexInputBindingDescription bindingDescription{
+            .binding = 0,
+            .stride = sizeof(CloudVertex),
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+        };
+        return bindingDescription;
+    }
+
+    static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions(1);
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(CloudVertex, pos);
+        return attributeDescriptions;
+    }
+
+};
 
 struct Vertex {
     cglm::Vec3f pos;
@@ -154,13 +177,6 @@ struct LightUniformBufferObject {
 extern std::vector<Vertex> static_vertices;
 extern std::vector<std::vector<Vertex>> frame_vertices_static;
 
-extern std::vector<Vertex> indexed_vertices;
-
-const std::vector<uint16_t> indices = {
-    0, 1, 2, 2, 3, 0,
-    4, 5, 6, 6, 7, 4
-};
-
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
@@ -263,8 +279,6 @@ public:
 
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
     std::vector<void*> uniformBuffersMapped;
@@ -323,6 +337,25 @@ public:
     std::vector<VkDeviceMemory> shadowCubeDepthImageMemorys;
     std::vector<VkImageView> shadowCubeDepthImageViews;
 
+    // clouds
+    std::vector<VkBuffer> cloudVertexBuffers;
+    std::vector<VkDeviceMemory> cloudVertexBufferMemorys;
+    VkBuffer cloudIndexBuffer;
+    VkDeviceMemory cloudIndexBufferMemory;
+    VkPipelineLayout cloudPipelineLayout;
+    VkPipeline cloudPipeline;
+    VkDescriptorSetLayout cloudDescriptorSetLayout;
+    VkDescriptorPool cloudDescriptorPool;
+    std::vector<VkDescriptorSet> cloudDescriptorSets;
+    std::vector<VkImage> cloudImages;
+    std::vector<VkDeviceMemory> cloudImageMemorys;
+    std::vector<VkImageView> cloudImageViews;
+    VkSampler cloudSampler;
+    VkImage cloudNoiseImage;
+    VkDeviceMemory cloudNoiseImageMemory;
+    VkImageView cloudNoiseImageView;
+    VkSampler cloudNoiseSampler;
+
     // headless specs
     VkFramebuffer headlessFramebuffer;
     VkImage dstImage;
@@ -372,6 +405,18 @@ public:
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
     VkFormat findDepthFormat();
     bool hasStencilComponent(VkFormat format);
+
+    // cloud management
+    void createCloudVertexBuffers();
+    void copyCloudVertexToBuffer();
+    void createCloudPipeline();
+    void createCloudDescriptorSetLayout();
+    void createCloudDescriptorPool();
+    void createCloudDescriptorSets();
+    void createCloudImagesWithViews();
+    void createCloudSampler();
+    void createCloudImages(const std::string& filename, int idx);
+    void createCloudNoiseImageWithView();
 
     // light source management
     void lightSetup();

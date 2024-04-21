@@ -106,6 +106,49 @@ namespace sconfig {
 
 
     /**
+     * Cloud Generator
+    */
+    std::shared_ptr<Cloud> SceneConfig::generateCloud(const mcjp::Object* obj) {
+        std::shared_ptr<Cloud> cloud = std::make_shared<Cloud>();
+        std::vector<double> vertex_1 = std::get<std::vector<double>>(obj->contents.at("position1"));
+        std::vector<double> vertex_2 = std::get<std::vector<double>>(obj->contents.at("position2"));
+        cloud->model = std::get<std::string>(obj->contents.at("model"));
+        cloud->noise = std::get<std::string>(obj->contents.at("noise"));
+
+        float x1 = static_cast<float>(vertex_1[0]);
+        float y1 = static_cast<float>(vertex_1[1]);
+        float z1 = static_cast<float>(vertex_1[2]);
+        float x2 = static_cast<float>(vertex_2[0]);
+        float y2 = static_cast<float>(vertex_2[1]);
+        float z2 = static_cast<float>(vertex_2[2]);
+
+        // this is a cuboid, we need to generate 8 vertices
+        cloud->vertices.push_back(cglm::Vec3f{ x1, y1, z1 });
+        cloud->vertices.push_back(cglm::Vec3f{ x2, y1, z1 });
+        cloud->vertices.push_back(cglm::Vec3f{ x2, y2, z1 });
+        cloud->vertices.push_back(cglm::Vec3f{ x1, y2, z1 });
+        cloud->vertices.push_back(cglm::Vec3f{ x1, y1, z2 });
+        cloud->vertices.push_back(cglm::Vec3f{ x2, y1, z2 });
+        cloud->vertices.push_back(cglm::Vec3f{ x2, y2, z2 });
+        cloud->vertices.push_back(cglm::Vec3f{ x1, y2, z2 });
+
+        std::vector<uint16_t> default_indices = {
+            0,1,2, 2,3,0,
+            5,1,2, 2,6,5,
+            4,5,6, 6,7,4,
+            0,4,7, 7,3,0,
+            0,1,5, 5,4,0,
+            3,2,6, 6,7,3
+        };
+
+        cloud->indices = default_indices;
+
+        return cloud;
+    }
+    
+
+
+    /**
      * Material Generator
     */
     std::shared_ptr<Material> SceneConfig::generateMaterial(const mcjp::Object* obj) {
@@ -698,6 +741,10 @@ namespace sconfig {
                 if (lightPtr != nullptr) {
                     id2lights[i] = lightPtr;
                 }
+            }
+            else if (type == "CLOUD") {
+                std::shared_ptr<Cloud> cloudPtr = generateCloud(obj);
+                id2clouds[i] = cloudPtr;
             }
 
             if (cameras["debug"] == nullptr) {

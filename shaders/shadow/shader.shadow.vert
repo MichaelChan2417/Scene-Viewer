@@ -1,7 +1,7 @@
 #version 450
 
 const int MAX_LIGHT = 8;
-const int MAX_INSTANCE = 128;
+const int MAX_INSTANCE = 32;
 
 layout(binding = 0) uniform LightUniformBufferObject {
     vec4 lightPos[MAX_LIGHT];

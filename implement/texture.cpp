@@ -278,3 +278,165 @@ void generateSinglePixel(const std::vector<double>& val, std::string& file_name)
     stbi_write_png(file_name.c_str(), 1, 1, 4, pixels, 0);
     delete[] pixels;
 }
+
+
+
+void SceneViewer::createCloudNoiseImageWithView() {
+    VkImageCreateInfo imageInfo{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .flags = 0,
+        .imageType = VK_IMAGE_TYPE_3D,
+        .format = VK_FORMAT_R8G8B8A8_SRGB,
+        .extent = {128, 128, 128},  // TODO: this is for specific noise
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
+
+    if (vkCreateImage(device, &imageInfo, nullptr, &cloudNoiseImage) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create Cloud Noise image!");
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(device, cloudNoiseImage, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = memRequirements.size,
+        .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+    };
+
+    if (vkAllocateMemory(device, &allocInfo, nullptr, &cloudNoiseImageMemory) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate image memory!");
+    }
+
+    vkBindImageMemory(device, cloudNoiseImage, cloudNoiseImageMemory, 0);
+
+    // COPY IMAGE DATAS
+    uint8_t* pdata = new uint8_t[128 * 128 * 128 * 4];
+
+    auto tStart = std::chrono::high_resolution_clock::now();
+
+    // referrencing vulkan example for parrallel
+#pragma omp parallel for
+    for (int k = 0; k < 128; k++) {
+        std::string filename = "resources/cloud/noises/noise_" + std::to_string(k) + ".png";
+        int texWidth, texHeight, texChannels;
+        stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        if (!pixels) {
+            throw std::runtime_error("Failed to load cloud noise image at " + filename);
+        }
+
+        for (int j = 0; j < 128; j++) {
+            for (int i = 0; i < 128; i++) {
+                int srcIndex = (j * 128 + i) * 4;
+                int destIndex = (k * 128 * 128 + j * 128 + i) * 4;
+                for (int c = 0; c < 4; c++) {
+                    pdata[destIndex + c] = pixels[srcIndex + c];
+                }
+            }
+        }
+    }
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+
+    std::cout << "Done in " << tDiff << "ms" << std::endl;
+
+    
+    // Use stage Buffer to copy
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    VkDeviceSize imageSize = 128 * 128 * 128 * 4;
+    createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+        memcpy(data, pdata, static_cast<size_t>(imageSize));
+    vkUnmapMemory(device, stagingBufferMemory);
+
+
+    // Copy to image
+    transitionImageLayout(cloudNoiseImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
+
+    // ======================= Begin Single Time Command =======================
+    VkCommandBuffer ccommandBuffer = beginSingleTimeCommands();
+
+    VkBufferImageCopy bufferCopyRegion{
+        .bufferOffset = 0,
+        .bufferRowLength = 0,
+        .bufferImageHeight = 0,
+        .imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+        .imageOffset = {0, 0, 0},
+        .imageExtent = {128, 128, 128},
+    };
+
+    vkCmdCopyBufferToImage(ccommandBuffer, stagingBuffer, cloudNoiseImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferCopyRegion);
+
+    endSingleTimeCommands(ccommandBuffer);
+    // ======================= End Single Time Command =======================
+
+    transitionImageLayout(cloudNoiseImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+
+    // Then create image view
+    VkImageViewCreateInfo viewInfo {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = cloudNoiseImage,
+        .viewType = VK_IMAGE_VIEW_TYPE_3D,
+        .format = VK_FORMAT_R8G8B8A8_SRGB,
+        .subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+    };
+
+    if (vkCreateImageView(device, &viewInfo, nullptr, &cloudNoiseImageView) != VK_SUCCESS) {
+        throw std::runtime_error("failed to create image view!");
+    }
+}
+
+
+void SceneViewer::createCloudImages(const std::string& filename, int idx) {
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load(filename.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    VkDeviceSize imageSize = texWidth * texHeight * 4;
+    std::cout << "cloud image size: " << texWidth << "x" << texHeight << std::endl;
+
+    if (!pixels) {
+        throw std::runtime_error("Failed to load cloud image!");
+    }
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    
+    createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+        memcpy(data, pixels, static_cast<size_t>(imageSize));
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    stbi_image_free(pixels);
+
+    createImage(texWidth, texHeight, 0, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        cloudImages[idx], cloudImageMemorys[idx], 1);
+
+    transitionImageLayout(cloudImages[idx], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
+        copyBufferToImage(stagingBuffer, cloudImages[idx], static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1);
+    transitionImageLayout(cloudImages[idx], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}

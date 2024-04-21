@@ -1,9 +1,10 @@
 #version 450
 
-const int MAX_INSTANCE = 128;
+const int MAX_INSTANCE = 32;
 const int MAX_LIGHT = 8;
 
 const float BIAS = 0;
+
 
 // referencing https://www.bilibili.com/video/BV1YK4y1T7yY?p=3&vd_source=f9eb1fe5893f11828341e009f807a94d for 
 // pcss shadow mapping and also NVIDIA https://developer.download.nvidia.com/whitepapers/2008/PCSS_Integration.pdf
@@ -37,7 +38,6 @@ layout(location = 0) in vec3 fragNormal;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 fragWorldPos;
 layout(location = 3) flat in InputBlock inputData;
-
 
 layout(location = 0) out vec4 outColor;
 
@@ -277,5 +277,7 @@ void main() {
     // color = pow(color, vec3(1.0/2.2));
 
     outColor = vec4(color, 1.0);
+
+    // outColor = vec4(gl_FragDepth, gl_FragDepth, gl_FragDepth, 1.0);
 
 }
