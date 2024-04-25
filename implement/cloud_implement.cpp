@@ -82,7 +82,13 @@ void SceneViewer::createCloudPipeline() {
 
     // color blending
     VkPipelineColorBlendAttachmentState colorBlendAttachment {
-        .blendEnable = VK_FALSE,
+        .blendEnable = VK_TRUE,
+        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .colorBlendOp = VK_BLEND_OP_ADD,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+        .alphaBlendOp = VK_BLEND_OP_ADD,
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
     };
     VkPipelineColorBlendStateCreateInfo colorBlending {
@@ -169,8 +175,17 @@ void SceneViewer::createCloudDescriptorSetLayout() {
         .pImmutableSamplers = nullptr,
     };
 
+    VkDescriptorSetLayoutBinding fragUboLayoutBinding {
+        .binding = 3,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .pImmutableSamplers = nullptr,
+    };
 
-    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, sampler2DLayoutBinding, samplerNoiseLayoutBinding };
+
+    std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, sampler2DLayoutBinding,
+    samplerNoiseLayoutBinding, fragUboLayoutBinding };
 
     VkDescriptorSetLayoutCreateInfo layoutInfo {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -184,7 +199,7 @@ void SceneViewer::createCloudDescriptorSetLayout() {
 }
 
 void SceneViewer::createCloudDescriptorPool() {
-    std::array<VkDescriptorPoolSize, 3> poolSizes{};
+    std::array<VkDescriptorPoolSize, 4> poolSizes{};
     poolSizes[0] = {
         .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
@@ -195,6 +210,10 @@ void SceneViewer::createCloudDescriptorPool() {
     };
     poolSizes[2] = {
         .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+    };
+    poolSizes[3] = {
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
         .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
     };
 
@@ -250,10 +269,16 @@ void SceneViewer::createCloudDescriptorSets() {
             };
             imageNoiseInfos[j] = imageInfo;
         }
+        
+        VkDescriptorBufferInfo bufferInfo2 {
+            .buffer = cloudUniformBuffers[i],
+            .offset = 0,
+            .range = sizeof(CloudUniformBufferObject),
+        };
 
 
         // descriptor WRITEs
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
         descriptorWrites[0] = {
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -283,6 +308,16 @@ void SceneViewer::createCloudDescriptorSets() {
             .descriptorCount = 1,   
             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .pImageInfo = imageNoiseInfos.data(),   
+        };
+
+        descriptorWrites[3] = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = cloudDescriptorSets[i],
+            .dstBinding = 3,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .pBufferInfo = &bufferInfo2,
         };
 
         vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
@@ -340,4 +375,95 @@ void SceneViewer::createCloudImagesWithViews() {
 
     // then for noises
     createCloudNoiseImageWithView();
+}
+
+void SceneViewer::createCloudUniformBuffers() {
+    VkDeviceSize bufferSize = sizeof(CloudUniformBufferObject);
+
+    cloudUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    cloudUniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+    cloudUniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, cloudUniformBuffers[i], cloudUniformBuffersMemory[i]);
+        vkMapMemory(device, cloudUniformBuffersMemory[i], 0, bufferSize, 0, &cloudUniformBuffersMapped[i]);
+    }
+}
+
+cglm::Vec4f getCurLightPos(double dtime) {
+    float x = 25.0 * cos(dtime * 3.1415926 / 8);
+    float y = 25.0 * sin(dtime * 3.1415926 / 8);
+    float z = 18.0;
+    return cglm::Vec4f(x, y, z, 1.0);
+}
+
+cglm::Vec4f getCurLightColor(double dtime) {
+    // module dtime to 4
+    dtime = fmod(dtime, 8.0);
+    cglm::Vec4f color1(1.0, 0.5, 0.0, 1.0);
+    cglm::Vec4f color2(0.85, 0.85, 1.0, 1.0);
+
+    if (dtime < 2.0) {
+        return color1 * (2.0 - dtime) / 2.0 + color2 * dtime / 2.0;
+    }
+    else if (dtime > 6.0) {
+        return color1 * (dtime - 6.0) / 2.0 + color2 * (8.0 - dtime) / 2.0;
+    }
+    else {
+        return cglm::Vec4f(0.85, 0.85, 1.0, 1.0);
+    }
+}
+
+void SceneViewer::updateCloudUniformBuffer(uint32_t currentImage) {
+    CloudUniformBufferObject cubo{};
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    double dtime = std::chrono::duration<double, std::chrono::seconds::period>(currentTime - startTime).count();
+
+    // cubo.lightPos = getCurLightPos(dtime);
+    cubo.lightPos = cglm::Vec4f(25, 25, 14, 1.0);
+    // cubo.lightColor = getCurLightColor(dtime);
+    cubo.lightColor = cglm::Vec4f(1.0, 0.85, 0.85, 1.0);
+    cubo.metadata = cglm::Vec4f(dtime, dtime, 0.0, 0.0);
+
+    memcpy(cloudUniformBuffersMapped[currentImage], &cubo, sizeof(cubo));
+}
+
+
+void SceneViewer::cleanCloudResources() {
+
+    vkDestroyImageView(device, cloudNoiseImageView, nullptr);
+    vkDestroyImage(device, cloudNoiseImage, nullptr);
+    vkFreeMemory(device, cloudNoiseImageMemory, nullptr);
+
+    int cloudImageSize = cloudImageViews.size();
+    for (int i=0; i<cloudImageSize; i++) {
+        vkDestroyImageView(device, cloudImageViews[i], nullptr);
+        vkDestroyImage(device, cloudImages[i], nullptr);
+        vkFreeMemory(device, cloudImageMemorys[i], nullptr);
+    }
+
+    // remove cloudSampler
+    vkDestroySampler(device, cloudSampler, nullptr);
+    vkDestroySampler(device, cloudNoiseSampler, nullptr);
+
+    // remove pipeline
+    vkDestroyPipeline(device, cloudPipeline, nullptr);
+    vkDestroyPipelineLayout(device, cloudPipelineLayout, nullptr);
+    vkDestroyDescriptorSetLayout(device, cloudDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorPool(device, cloudDescriptorPool, nullptr);
+
+    // remove cloudUniformBuffers
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroyBuffer(device, cloudUniformBuffers[i], nullptr);
+        vkFreeMemory(device, cloudUniformBuffersMemory[i], nullptr);
+    }
+
+    // remove cloudIndexBuffers
+    for (int i = 0; i < scene_config.id2clouds.size(); i++) {
+        vkDestroyBuffer(device, cloudVertexBuffers[i], nullptr);
+        vkFreeMemory(device, cloudVertexBufferMemorys[i], nullptr);
+    }
+    vkDestroyBuffer(device, cloudIndexBuffer, nullptr);
+    vkFreeMemory(device, cloudIndexBufferMemory, nullptr);
 }

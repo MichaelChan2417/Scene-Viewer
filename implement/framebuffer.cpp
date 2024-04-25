@@ -126,7 +126,8 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     // begin drawing, (render pass)
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {{0.52f, 0.8f, 0.92f, 1.0f}};
-    clearValues[1].depthStencil = {1.0f, 0};
+    // clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    clearValues[1].depthStencil = { 1.0f, 0 };
 
     // instead, I begin a render pass for shadow map
     LightUniformBufferObject lubo{};
@@ -231,6 +232,7 @@ void SceneViewer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t im
     }
     
     // draw cloud
+    updateCloudUniformBuffer(currentFrame);
     int cloudIdx = 0;
     for (const auto& [id, cloud] : scene_config.id2clouds) {
         VkBuffer pcloudVertexBuffers[] = { cloudVertexBuffers[cloudIdx] };

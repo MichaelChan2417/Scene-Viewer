@@ -1,6 +1,7 @@
 # no images
 *.png
 *.jpg
+*.tga
 
 # ignore resources folder
 resources

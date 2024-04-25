@@ -50,6 +50,7 @@ void SceneViewer::initVulkan() {
     std::cout << 7 << std::endl;
     createIndexBuffer();
     createUniformBuffers();
+    createCloudUniformBuffers();
 
     // Light resources should pull ahead!!!
     createLightResources();
@@ -73,6 +74,9 @@ void SceneViewer::cleanup() {
 
     // clear shadow depth resources
     cleanShadowResources();
+
+    // clear cloud resources
+    cleanCloudResources();
 
     vkDestroySampler(device, textureSampler2D, nullptr);
     vkDestroySampler(device, textureSamplerCube, nullptr);
@@ -109,14 +113,6 @@ void SceneViewer::cleanup() {
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
-    // remove cloudIndexBuffers
-    for (int i = 0; i < scene_config.id2clouds.size(); i++) {
-        vkDestroyBuffer(device, cloudVertexBuffers[i], nullptr);
-        vkFreeMemory(device, cloudVertexBufferMemorys[i], nullptr);
-    }
-    vkDestroyBuffer(device, cloudIndexBuffer, nullptr);
-    vkFreeMemory(device, cloudIndexBufferMemory, nullptr);
 
     vkDestroyBuffer(device, vertexBuffer, nullptr);
     vkFreeMemory(device, vertexBufferMemory, nullptr);
@@ -179,7 +175,6 @@ void SceneViewer::mainLoop() {
     startTime = std::chrono::high_resolution_clock::now();
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-
         setup_frame_instances(-1);
 
         drawFrame();

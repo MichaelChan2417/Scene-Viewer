@@ -174,6 +174,12 @@ struct LightUniformBufferObject {
     alignas(16)cglm::Vec4f metadata2[MAX_LIGHT];
 };
 
+struct CloudUniformBufferObject {
+    alignas(16) cglm::Vec4f lightPos;
+    alignas(16) cglm::Vec4f lightColor;
+    alignas(16) cglm::Vec4f metadata;
+};
+
 extern std::vector<Vertex> static_vertices;
 extern std::vector<std::vector<Vertex>> frame_vertices_static;
 
@@ -355,6 +361,9 @@ public:
     VkDeviceMemory cloudNoiseImageMemory;
     VkImageView cloudNoiseImageView;
     VkSampler cloudNoiseSampler;
+    std::vector<VkBuffer> cloudUniformBuffers;
+    std::vector<VkDeviceMemory> cloudUniformBuffersMemory;
+    std::vector<void*> cloudUniformBuffersMapped;
 
     // headless specs
     VkFramebuffer headlessFramebuffer;
@@ -417,6 +426,9 @@ public:
     void createCloudSampler();
     void createCloudImages(const std::string& filename, int idx);
     void createCloudNoiseImageWithView();
+    void createCloudUniformBuffers();
+    void updateCloudUniformBuffer(uint32_t currentImage);
+    void cleanCloudResources();
 
     // light source management
     void lightSetup();
