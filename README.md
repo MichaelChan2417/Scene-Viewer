@@ -15,15 +15,15 @@ Implemented several features
 ### Lambertian
 ![Lambertian](./res/lam-result.png)
 
-### Texture with env-light
-[env-light with texture](./res/creation.mp4)
+### Texture with env-light [click to view video]
+[![env-light with texture](./res/text-short-view.png)](./res/creation.mp4)
 
-## Light & Shadow Support & Material(pbr)
+## Light & Shadow Support & Material(pbr) [click to view video]
 [![Light & Shadow Support & Material](./res/shadow-short-view.png)](./res/light-with-shadow.mp4)
 
 ### PCSS
 ![PCSS](./res/good-PCSS.png)
 
 
-## Voxel Rendering
-[Cloud Rendering](./res/final-cloud.mp4)
+## Voxel Rendering [click to view video]
+[![Cloud Rendering](./res/cloud-view.png)](./res/final-cloud.mp4)
