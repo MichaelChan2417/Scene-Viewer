@@ -16,10 +16,7 @@ Implemented several features
 ![Lambertian](./res/lam-result.png)
 
 ### Texture with env-light
-<video width="600" controls>
-  <source src="./res/creation.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+[Lambertian](./res/creation.mp4)
 
 ## Light & Shadow Support & Material(pbr)
 <video width="600" controls>
@@ -32,3 +29,4 @@ Implemented several features
 
 
 ## Voxel Rendering
+<iframe width="600" height="315" src="https://www.youtube.com/embed/video_id" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
